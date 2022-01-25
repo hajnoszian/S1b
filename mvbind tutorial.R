@@ -17,6 +17,7 @@ fit1 <- brm(
   mvbind(tarsus, back) ~ sex + hatchdate + (1|p|fosternest) + (1|q|dam),
   data = BTdata, chains = 2
 )
+
 #the extra |p| (or q) in the grouping part of the formula is apparently to indicate varying effects of 
 #fosternest should be modeled as correlated. I.e. the random intercept of fosternest for y1 should be correlated to
 #the random intercept of fosternest on y2 (i think)

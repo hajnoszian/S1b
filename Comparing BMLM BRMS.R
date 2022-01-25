@@ -5,6 +5,7 @@ library(tidyverse)
 library(bayestestR)
 options(mc.cores = parallel::detectCores())
 
+
 df <- BLch9 %>% 
   filter(time < 3)
 df <- subset(df, select = -c(fwkstrs, fwkdis, freldis))
