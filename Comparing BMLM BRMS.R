@@ -283,3 +283,66 @@ summary(my_mod)
 #Also the reported indirect effect of x.c2 is almost exactly the same as the x.c2 effect in the model summary
 #i.e. I don't think the mediation numbers are showing me anything notably different from what the model summary would tell me
 
+###Ok, new comparison. (1|id) vs (1+time|id)
+#considering it's just t1,t2, this may not actually matter since the random intercept is effectively capturing t1 and t2 is the dv anyway
+
+fit1 <- brm(y ~ x.1 + m.1 + time + (time| id),
+    df_l,
+    warmup = 1000, iter = 8000, chains = 4)
+
+fit2 <- brm(y ~ x.1 + m.1 + time + (1 | id),
+            df_l,
+            warmup = 1000, iter = 8000, chains = 4)
+summary(fit1)
+summary(fit2)#very slight difference, just on the m effect (to the .01 decimal change in CI and estimate)
+#so overall, probs not a big difference with this kind of t1, t2 data I'd say
+#for overidentification sake, may thik about just using random intercept
+#trying with categorica X just in case
+fit1 <- brm(y ~ x.c + m.1 + time + (time| id),
+            df_l,
+            warmup = 1000, iter = 8000, chains = 4)
+
+fit2 <- brm(y ~ x.c + m.1 + time + (1 | id),
+            df_l,
+            warmup = 1000, iter = 8000, chains = 4)
+summary(fit1)
+summary(fit2)
+#as expected, the a effects get way wider with less variation from the categorical x
+#m effects stay about the same, both between these two and compared to the numeric x versions
+
+
+###New thing from Adam--use t1 measures as random slopes? ie (1 + t1|ID)
+#this should use df_w I think...
+
+#something like this?
+fit1 <- brm(y.2 ~ x.c + m.1 + (1+y.1|id),
+             df_w,
+             warmup = 1000, iter = 5000, chains = 4)
+#compare to? I think this, this is the 'final' model that I would probs use, without the mvbind
+fit2 <- brm(y ~ x.c + m.1 + time + (1|id),
+             df_l,
+             warmup = 1000, iter = 5000, chains = 4)
+
+summary(fit1)
+summary(fit2)
+##Looks to me like the former has a type s error in the m path. I also think the latter model
+##uses time/phase/whatever more consistently to the way i've seen longitudinal models get run in the past online and in course
+##I trust that latter model construction better
+
+
+##also, try out the difference between m ~ x, m ~x + (1|ID)
+fit1 <- brm(mvbind(m.1,m2.1) ~ x.c,
+             df_l,
+             warmup = 1000, iter = 5000)
+
+fit2 <- brm(mvbind(m.1,m2.1) ~ x.c + (1|id),
+             df_l,
+             warmup = 1000, iter = 5000)#having a lot of trouble with this sampling--taking 30mins per chain
+summary(fit1)
+summary(fit2)
+##really hard time fitting the 2nd model here (1|id) with a  lot of sampling warnings
+##I'd be careful with it. 
+
+
+###then one last confirmation of whether the bf() + bf(), in brms() works with mvbind or not
+###initial tests suggest brm isn't happy with mvbind within a bf
