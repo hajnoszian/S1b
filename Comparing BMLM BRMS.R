@@ -346,3 +346,12 @@ summary(fit2)
 
 ###then one last confirmation of whether the bf() + bf(), in brms() works with mvbind or not
 ###initial tests suggest brm isn't happy with mvbind within a bf
+fit_m <- bf(mvbind(m.1, m2.1) ~ x.1)
+fit_y <- bf(mvbind(y,y2) ~ x.c + m.1 + m2.1 + time + (time|id))
+model_my <- brm(fit_m + fit_y, 
+                 set_rescor(FALSE),
+                 data = df_l,
+                resp = c("m.1", "m2.1", "y", "y2"))
+#yeah, this isn't super happy with using mvbind twice--it gets confused what is the response variable
+#and I can't seem to find out how to specify the resp= part properly
+#I don't think that's worth it
