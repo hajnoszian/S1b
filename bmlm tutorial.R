@@ -6,7 +6,6 @@ head(BLch9)
 #MLM means isolating within and between person components of X,M,Y. BLch9 already
 #has subject-mean deviated (within-person) components (XMY) but if you had to obtain them from the first three columns for each person use isolate
 
-
 BLch9_2 <- isolate(BLch9,
         by = "id",
         value = c("fwkstrs", "fwkdis", "freldis"))
