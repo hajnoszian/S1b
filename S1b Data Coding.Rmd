@@ -1,0 +1,416 @@
+---
+title: "S1b Data Code"
+author: "Ian Hajnosz"
+date: "3/17/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First, loading in helpful the packages
+```{r}
+library(dplyr)
+library(tidyverse)
+library(readr)
+```
+## Data Entry & Cleaning
+
+###Data Loading
+Now to load in the data. I'm saving an "anchor" dataframe (df) as a reference point to the original data. We'll iterate using the df dataframe from now on.
+```{r}
+library(readr)
+df <- df_anchor <- read_csv("Ian+Study+1b_March+17,+2022_09.18.csv")
+```
+
+### Data Cleaning
+
+####Removing Unnecessary Data
+Removing Unnecessary columns. This includes removing  participated metadata Qualtrics automatically collects in their surveys, as well as most of the "DO" variables--these are the scale and item ordering within each survey block. Items were randomized within their respective scale, and scales were randomly presented within their given survey block in the survey flow. We can see that randomization did work, but otherwise these aren't helpful for us now.
+Note: We do keep one "DO" variable called, FL_5_DO--this column names us the video the participant viewed in the survey. We'll use this variable to double check participant attentiveness later on
+```{r}
+df <- select(df,
+       -(StartDate:UserLanguage)) #removing participant metadata columns (unnecessary variables)
+
+df <- df[-c(1,2),] #removing participant metadata rows (first two rows are metadata)
+
+df <- select(df,
+       -c(Aut1_DO, Rel1_DO, Comp1_DO, EC_DO, Attach_DO,KM_P_DO, KM_CSR_DO, KM_M_DO, KM_L_DO,PANAS_DO, Aut2_DO, Rel2_DO, Comp2_DO, Vid_SelfRep_DO, FL_3_DO, FL_31_DO, FL_33_DO, SC0)) # removing unnecessary block/item ordering columns
+```
+
+#### Reference ID Variable
+Now we can creating a separate ID variable, just for reference sake
+```{r}
+df$id <- 1:nrow(df)
+df <- df %>% 
+  select(id, everything()) #moving the id variable to the front of the df
+```
+#### Renaming Columns
+We have some columns with unhelpful names. Let's change that. We'll also change that FL_5_DO from earlier into a more recognizable and helpful variable name.
+
+```{r}
+df <- rename(df,
+       Neutral_Timer = 'Timer_Neutral_Page Submit',
+       KM_Timer = 'Timer_KM_Page Submit',
+       Amuse_Timer = 'Timer_Amuse_Page Submit',
+       Cond = FL_5_DO,
+       Vid_Issue_Text = Vid_Issue_2_TEXT,
+       Race_Text = Race_10_TEXT,
+       SexualOr_Text = SexualOr_6_TEXT,
+       Age = Age_1)
+```
+
+####Recoding Responses
+Let's try to simplify some of the character responses in our new Cond variable into numerics for easier organization.
+We can also recode answers to that attention check item. Participants were instructed to only select "Not at all" which is also coded as 0. Therefore, any participant who responded as 0 passed, any other response is an attention check fail.
+```{r}
+df <- mutate(df, 
+             Cond = recode(Cond,
+                'VideoCondition1"ThaiMedicine"Zickfeldetal.2019' = "KM",
+                'VideoNeutral1"CleanHardwoodFloors"(Riveraetal.,2019)' = "Neutral",
+                'VideoCondition2"MrBean"Zickfeldetal.,2019' = "Amuse"))
+
+table(df$AttCheck_1, exclude = NULL)
+df$AttCheck_1 <- ifelse(df$AttCheck_1 == 0,
+                        "Pass",
+                        "Fail")
+table(df$AttCheck_1)#checking ifelse worked properly
+
+```
+
+####Checing Variable Typing
+Now let's make sure the variables are the correct type of data. I.e. that numeric data are being treated as numeric, characters are factors etc.
+
+Numeric Data
+```{r}
+df[, c(3:70, 72:112)] <- sapply(df[, c(3:70, 72:112)], as.numeric)
+df$Age <- as.numeric(df$Age)
+```
+
+Factor Data
+```{r}
+#Consent
+table(df$Consent)#only "1"s in here, so only a single level to label
+df$Consent <- factor(df$Consent, labels = "Consent")
+
+#Video Self Report
+table(df$Vid_SelfRep) #based on the survey, 2 = Neutral Video description, 3 = KM Video description, 6 = Amusement Video Description. All other responses were fake video descriptions
+df$Vid_SelfRep <- factor(df$Vid_SelfRep, labels = c(
+  "Fake1",
+  "Neutral",
+  "KM",
+  "Amuse",
+  "Fake7"
+))
+table(df$Vid_SelfRep)#Video self report changes line up with original
+
+#Video Audio
+table(df$Vid_Audio) #based on the survey, 1 = No audio, 2 = Yes audio
+df$Vid_Audio <- factor(df$Vid_Audio, labels = c(
+  "No",
+  "Yes"
+))
+table(df$Vid_Audio)
+
+#Video Issues
+table(df$Vid_Issue)#Based on survey, 1= No, 2 = Yes
+df$Vid_Issue <- factor(df$Vid_Issue, labels = c(
+  "No",
+  "Yes"
+))
+table(df$Vid_Issue)
+
+#Video Issues Character String
+summary(df$Vid_Issue_Text)#can keep as a character string
+table(df$Vid_Issue_Text) #just to see spread of issues
+df %>% 
+  filter(!is.na(Vid_Issue_Text))#Just to see the exact participants with video issues
+
+#Previous Experience with Video
+table(df$Vid_PrevExp)#Based on survey, 1 = No, 2 = Yes
+df$Vid_PrevExp <- factor(df$Vid_PrevExp, labels = c(
+  "No",
+  "Yes"
+))
+table(df$Vid_PrevExp)
+
+#Gender
+table(df$Gender) #Based on survey, 0 = Female, 1 = Male, 2 = Trans Female, 3 = Trans Male(unrepresented in data), 4 = Nonbinary, 5 = Bigender, 6 = Agender
+
+df$Gender <- factor(df$Gender, labels = c(
+  "Female",
+  "Male",
+  "Trans Female",
+  "Nonbinary",
+  "Bigender",
+  "Agender"
+))
+table(df$Gender)
+
+#Gender, Write-In
+table(df$Gender_7_TEXT)# No write-in gender responses
+
+#Race
+table(df$Race) #Based on survey, 0 = White, 1 = Black, African, Caribbean, 2 = Hispanic, Latino, Chicano, 3 = East Asian, 4 = South Asian, 5 = Southeast Asian, 6 = West Asian (unrepresented in data), 7 = Middle Eastern, Arab, 8 = Aboriginal, Indigenouse, Native (unrepresented in data), 9 = Mixed or Multiple Ethnic Groups, 10 = Write-in
+df$Race <- factor(df$Race, labels = c(
+  "White, Caucasian, Anglo",
+  "Black, African, Caribbean",
+  "Other Write-In",
+  "Hispanic, Latino, Chicano",
+  "East Asian",
+  "South Asian",
+  "Southeast Asian",
+  "Middle Eastern, Arab",
+  "Mixed or Multiple Groups"
+))
+table(df$Race)
+
+#Race, Write-In
+table(df$Race_Text)
+df$Race[df$Race_Text == "White and Hispanic"] <- "Mixed or Multiple Groups"
+df$Race[df$Race_Text == "White, european"] <- "White, Caucasian, Anglo"
+
+#Education
+table(df$Education) # Based on survey, 0 = "GCSE, O-Levels, or Standard Grades", 1 = "A-Levels or Highers/Advanced Highers", 2 = "Vocational degree (e.g., SVQ, HNC, HND)", 3 = "Undergraduate degree (e.g., BSc, BA)", 4 = "Master's degree (e.g., MSc, MPhil)", 5 = "PhD, PsyD", 6 = "Other advanced or professional degree (e.g., MD, JD)"
+df$Education <- factor(df$Education, labels = c(
+  "GCSE, O-Levels, or Standard Grades",
+  "A-Levels or Highers/Advanced Highers",
+  "Vocational degree (e.g., SVQ, HNC, HND)",
+  "Undergraduate degree (e.g., BSc, BA)",
+  "Master's degree (e.g., MSc, MPhil)",
+  "PhD, PsyD", 
+  "Other advanced or professional degree (e.g., MD, JD)"
+))
+table(df$Education)
+
+#Student
+table(df$Student) # Based on survey, 0 = No, 1 = Yes
+df$Student <- factor(df$Student, labels = c(
+  "No",
+  "Yes"
+))
+table(df$Student)
+
+#Employed
+table(df$Employed) # Based on survey, 0 = No, 1 = Part-time, 2 = Full-time
+df$Employed <- factor(df$Employed, labels = c(
+  "No",
+  "Part-time",
+  "Full-time"
+))
+table(df$Employed)
+
+#Income
+table(df$Income) # Based on survey, 0 = £0-£12,500, 1 = £12,501-£14,549, 2 = £14,550-£24,944, 3 = £24,945-£43,430, 4 = £43,431-£150,000, 5 = £150,001+
+df$Income <- factor(df$Income, labels = c(
+  "£0-£12,500",
+  "12,501-£14,549",
+  "£14,550-£24,944",
+  "£24,945-£43,430",
+  "£43,431-£150,000",
+  "£150,001+"
+))
+table(df$Income)
+
+#Sexual Orientation
+table(df$SexualOr) # Based on survey, 0 = Heterosexual, Straight, 1 = Gay, 2 = Lesbian, 3 = Queer, 4 = Bisexual, Pansexual, 5 = Demisexual, 6 = Asexual, 7 = Other Write-In (not represented in these data)
+df$SexualOr <- factor(df$SexualOr, labels = c(
+  "Heterosexual, Straight",
+  "Gay",
+  "Lesbian",
+  "Queer",
+  "Bisexual, Pansexual",
+  "Demisexual",
+  "Asexual",
+  "Other Write-In"
+))
+table(df$SexualOr)
+
+#Sexual Orientation, Write-Ins
+table(df$SexualOr_Text) #no corrections applicable
+```
+Now to do some broad checks across the variables to see if any outliers, impossible ratings appear etc.
+```{r}
+summary(df)
+```
+### Pre-Processing
+Now that the variables are entered correctly, we can go about making the appropriate transformations, reverse-codings etc. on those variables
+
+####Reverse-Codings and collating scores
+For reverse coding, we can use the equation: Reversed score = (total available responses in scale + 1) - Reported Score
+This way, in a 7-item, 1-7 coding scheme, 1s become 7s ((7+1)-1 = 7), 2s become 6s ((7+1)-2 = 6) etc.
+
+T1 Autonomy Satisfaction & Frustration
+```{r}
+#Aut Sat items: 1, 2, 3, 4
+df$ANS1 <- rowMeans(df[,c("Aut1S_1", "Aut1S_2", "Aut1S_3", "Aut1S_4")])
+
+#Aut Frus items: 5, 6, 7, 8
+df$ANF1 <- rowMeans(df[,c("Aut1F_5", "Aut1F_6", "Aut1F_7", "Aut1F_8")])
+```
+
+T1 Relatedness Satisfaction & Frustration
+```{r}
+#Rel Sat items: 1, 2, 3, 4
+df$RNS1 <- rowMeans(df[,c("Rel1S_1", "Rel1S_2", "Rel1S_3", "Rel1S_4")])
+
+#Rel Frus itmes: 5, 6, 7, 8
+df$RNF1 <- rowMeans(df[,c("Rel1F_5", "Rel1F_6", "Rel1F_7", "Rel1F_8")])
+```
+
+T1 Competency Satisfaction & Frustration
+```{r}
+#Comp Sat items: 1, 2, 3, 4
+df$RNS1 <- rowMeans(df[,c("Comp1S_1", "Comp1S_2", "Comp1S_3", "Comp1S_4")], na.rm = T)
+
+#Comp Frus itmes: 5, 6, 7, 8
+df$RNF1 <- rowMeans(df[,c("Comp1F_5", "Comp1F_6", "Comp1F_7", "Comp1F_8")], na.rm = T)
+```
+Empathic Concern
+Note, that this has a zero-point in it's scale. This means the reverse score equation is 
+Reversed score = (total available responses in scale - 1) - Reported Score.
+This way, in a 5-item, 0-4 coding scheme, 0s become (5-1)-0 = 4), 1s become (5-1)-1 = 3 etc.
+```{r}
+summary(df$EC_1)#Correctly on the 0-4 scale
+
+#EC items with reversed coding (r): 1, 2R, 3, 4R, 5R, 6, 7
+df$EC_2R <- 4 - df$EC_2
+df$EC_4R <- 4 - df$EC_4
+df$EC_5R <- 4 - df$EC_5
+df$EC <- rowMeans(df[, c("EC_1", "EC_2R", "EC_3", "EC_4R", "EC_5R", "EC_6", "EC_7")], na.rm = T)
+
+```
+
+General/Global Attachment: Avoidance and Anxiety
+Note, for reverse coding without a zero point, we can use the equation:
+Reversed score = (total available responses in scale + 1) - Reported Score
+This way, in a 7-item, 1-7 coding scheme, 1s become 7s ((7+1)-1 = 7), 2s become 6s ((7+1)-2 = 6) etc.
+```{r}
+#Attachment Items: 1 - 9
+summary(df$Attach_1) #properly on 1-7 scale
+
+##Attachment Avoidance
+#Attachment items with reversed coding (r): 1R, 2R, 3R, 4R, 5, 6
+df$Attach_1R <- 8 - df$Attach_1
+df$Attach_2R <- 8 - df$Attach_2
+df$Attach_3R <- 8 - df$Attach_3
+df$Attach_4R <- 8 - df$Attach_4
+df$Attach_avd <- rowMeans(df[, c("Attach_1R", "Attach_2R", "Attach_3R", "Attach_4R", "Attach_5", "Attach_6")], na.rm = T)
+
+##Attachment Anxiety
+#Attachment items (no reverse coding): 7,8,9
+df$Attach_anx <- rowMeans(df[, c("Attach_7", "Attach_8", "Attach_9")], na.rm = T)
+```
+Kama Muta (KM)
+KM is made up of 5 aspects, all measured separately: Physical reaction (KM_P), Communal sharing relationship appraisal (KM_CSR), prosocial Motivation (KM_M), positive affect, and lexical label (KM_L). We remove positive affect here for the sake of separately measuring it more robustly via the PANAS.
+
+```{r}
+#KM_P (Physiology) Items: KM_P_1-12
+df$KM_P <- rowMeans(df[, c("KM_P_1","KM_P_2", "KM_P_3", "KM_P_4" ,"KM_P_5", "KM_P_6", "KM_P_7", "KM_P_8", "KM_P_9", "KM_P_10", "KM_P_11","KM_P_12")], na.rm = T)
+
+#KM_CSR (Communal Sharing Relationship appraisal) Items: KM_CSR_1-4
+df$KM_CSR <- rowMeans(df[, c("KM_CSR_1","KM_CSR_2","KM_CSR_3", "KM_CSR_4")], na.rm = T)
+
+#KM_M (prosocial Motive): KM_M_1-4
+df$KM_M <- rowMeans(df[, c("KM_M_1","KM_M_2", "KM_M_3", "KM_M_4")], na.rm = T)
+
+#KM_L (Lexical Label): KM_L_1-3
+df$KM_L <- rowMeans(df[, c("KM_L_1", "KM_L_2", "KM_L_3")], na.rm = T)
+```
+
+The KAMMUS Scale technically only reflects the likelihood of a given experience being kama muta, rather than a direct measure of the emotion itself. As such, a complete KM score cannot be summed together. We instead directly apply a probability function to the kama muta scores to quantitatively reflect this scale issue.
+
+KM_Avg
+First we compile a single KM average. Note the scale metric of the KAMMUS is 0-6. 3 is the midpoint, whereby scores above 3 are middling indicator of the experience being KM, while scores of 0 ("Not at All") and 6 ("A Lot") reflect very low and very high likelihood of the experience being KM. Therefore, an average score across all subscales will reflect similarly (e.g. the equivalent of marking 0 on every subscale item, will have an average of 0, marking very low likelihood. Marking a 6 on every subscale item will have an average of 7, marking very high likelihood.)
+
+KM_Scl
+We apply a sigmoid function to create reflect a non-linear scaling of these scores to reflect "probablity" (which is typically expressed via a sigmoid function a la logistical regressions). Note, the sigmoid function f(x) = 1/(1+e^-x) means that f(0) = 0.5 or 50% probablity. The goal is therefore to have 3, the middle of the KAMMUS scale, to reflect this 50% probability--such that scores above 3 mark higher likelihoods, lower scores mark lower likelihoods. I.e. we center scale the KAMMUS scores to 3
+
+pKM
+"Probability of KM", or p(KM), is the final implementation of the sigmoid function on this centered KM variable.
+
+```{r}
+df$KM_Avg <- (df$KM_P + df$KM_CSR + df$KM_M + df$KM_L)/4
+
+df$KM_Scl <- df$KM_Avg - 3
+
+df$pKM <- 1/(1+(exp(1)^-(df$KM_Scl)))
+```
+
+You can see this non-linear pathway by comparing the KM average scores to this new pKM "probability" variable
+```{r}
+library(ggplot2)
+ggplot(df, aes(x = KM_Avg, y = pKM)) +
+  geom_point()
+```
+
+
+PANAS: Positive and Negative Affect
+```{r}
+##Negative Affect
+#Negative items (no reverse coding): PANAS_NA1-5
+df$NegAff <- rowMeans(df[,c("PANAS_NA1", "PANAS_NA2", "PANAS_NA3", "PANAS_NA4", "PANAS_NA5")], na.rm = T) 
+
+##Positive Affect
+#Positive items (no reverse coding): PANAS_PA1-5
+df$PosAff <- rowMeans(df[,c("PANAS_PA1", "PANAS_PA2", "PANAS_PA3", "PANAS_PA4", "PANAS_PA5")], na.rm = T) 
+
+```
+
+T2 Autonomy Satisfaction & Frustration
+```{r}
+#Aut Sat items: 1, 2, 3, 4
+df$ANS2 <- rowMeans(df[,c("Aut2S_1", "Aut2S_2", "Aut2S_3", "Aut2S_4")])
+
+#Aut Frus items: 5, 6, 7, 8
+df$ANF2 <- rowMeans(df[,c("Aut2F_5", "Aut2F_6", "Aut2F_7", "Aut2F_8")])
+```
+
+T2 Relatedness Satisfaction & Frustration
+```{r}
+#Rel Sat items: 1, 2, 3, 4
+df$RNS2 <- rowMeans(df[,c("Rel2S_1", "Rel2S_2", "Rel2S_3", "Rel2S_4")])
+
+#Rel Frus itmes: 5, 6, 7, 8
+df$RNF2 <- rowMeans(df[,c("Rel2F_5", "Rel2F_6", "Rel2F_7", "Rel2F_8")])
+```
+
+T2 Competency Satisfaction & Frustration
+```{r}
+#Comp Sat items: 1, 2, 3, 4
+df$RNS2 <- rowMeans(df[,c("Comp2S_1", "Comp2S_2", "Comp2S_3", "Comp2S_4")], na.rm = T)
+
+#Comp Frus itmes: 5, 6, 7, 8
+df$RNF2 <- rowMeans(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], na.rm = T)
+```
+
+
+###Checking for Data Issues, Removing Problem Cases
+The data cleaning is nearly done,now to check and attend to some final quality signs
+
+To start, we had an Attention Check (AttCheck_1) earlier, but we also had a 2nd attention check--whether participants corretly self-reported the video they watched. Let's cross-reference that with the actual video they were shown. People who correctly reported their video pass, those who incorrectly report fail this 2nd attention check
+
+```{r}
+table(df$Vid_SelfRep, df$Cond)
+```
+Luckly it appears the incorrect answers (8 of them) are spread across all three conditions, suggesting the incorrect answers are not due to a condition's video being particularly difficult/vague to identify when asked directly. We can label these for the 2nd attention check
+
+```{r}
+df$AttCheck_2 <- ifelse(df$Vid_SelfRep == df$Cond,
+                        "Pass",
+                        "Fail")
+table(ifelse(df$Vid_SelfRep == df$Cond,
+                        "Pass",
+                        "Fail")) #checking the new variable is tracking correctly to our previous table
+```
+###Evaluating Problems for Removal
+Vid_audio
+vid_issues
+Time on Vid page
+
+###Removal Criteria
+Consent
+Pass Both Attention Checks
+Time
+Technical issues
