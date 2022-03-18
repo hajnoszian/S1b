@@ -17,7 +17,7 @@ library(readr)
 ```
 ## Data Entry & Cleaning
 
-###Data Loading
+### Data Loading
 Now to load in the data. I'm saving an "anchor" dataframe (df) as a reference point to the original data. We'll iterate using the df dataframe from now on.
 ```{r}
 library(readr)
@@ -26,12 +26,15 @@ df <- df_anchor <- read_csv("Ian+Study+1b_March+17,+2022_09.18.csv")
 
 ### Data Cleaning
 
-####Removing Unnecessary Data
+#### Removing Unnecessary Data
 Removing Unnecessary columns. This includes removing  participated metadata Qualtrics automatically collects in their surveys, as well as most of the "DO" variables--these are the scale and item ordering within each survey block. Items were randomized within their respective scale, and scales were randomly presented within their given survey block in the survey flow. We can see that randomization did work, but otherwise these aren't helpful for us now.
 Note: We do keep one "DO" variable called, FL_5_DO--this column names us the video the participant viewed in the survey. We'll use this variable to double check participant attentiveness later on
 ```{r}
 df <- select(df,
-       -(StartDate:UserLanguage)) #removing participant metadata columns (unnecessary variables)
+       -(StartDate:Progress)) #removing participant metadata columns (unnecessary variables)
+
+df <- select(df,
+       -(Finished:UserLanguage)) #removing participant metadata columns (unnecessary variables)
 
 df <- df[-c(1,2),] #removing participant metadata rows (first two rows are metadata)
 
@@ -58,10 +61,11 @@ df <- rename(df,
        Vid_Issue_Text = Vid_Issue_2_TEXT,
        Race_Text = Race_10_TEXT,
        SexualOr_Text = SexualOr_6_TEXT,
-       Age = Age_1)
+       Age = Age_1,
+       Survey_Duration = `Duration (in seconds)`)
 ```
 
-####Recoding Responses
+#### Recoding Responses
 Let's try to simplify some of the character responses in our new Cond variable into numerics for easier organization.
 We can also recode answers to that attention check item. Participants were instructed to only select "Not at all" which is also coded as 0. Therefore, any participant who responded as 0 passed, any other response is an attention check fail.
 ```{r}
@@ -79,12 +83,13 @@ table(df$AttCheck_1)#checking ifelse worked properly
 
 ```
 
-####Checing Variable Typing
+#### Checing Variable Typing
 Now let's make sure the variables are the correct type of data. I.e. that numeric data are being treated as numeric, characters are factors etc.
 
 Numeric Data
 ```{r}
-df[, c(3:70, 72:112)] <- sapply(df[, c(3:70, 72:112)], as.numeric)
+df$Survey_Duration <- as.numeric(df$Survey_Duration)
+df[, c(4:71, 73:113)] <- sapply(df[, c(4:71, 73:113)], as.numeric)
 df$Age <- as.numeric(df$Age)
 ```
 
@@ -237,7 +242,7 @@ summary(df)
 ### Pre-Processing
 Now that the variables are entered correctly, we can go about making the appropriate transformations, reverse-codings etc. on those variables
 
-####Reverse-Codings and collating scores
+#### Reverse-Codings and collating scores
 For reverse coding, we can use the equation: Reversed score = (total available responses in scale + 1) - Reported Score
 This way, in a 7-item, 1-7 coding scheme, 1s become 7s ((7+1)-1 = 7), 2s become 6s ((7+1)-2 = 6) etc.
 
@@ -262,10 +267,10 @@ df$RNF1 <- rowMeans(df[,c("Rel1F_5", "Rel1F_6", "Rel1F_7", "Rel1F_8")])
 T1 Competency Satisfaction & Frustration
 ```{r}
 #Comp Sat items: 1, 2, 3, 4
-df$RNS1 <- rowMeans(df[,c("Comp1S_1", "Comp1S_2", "Comp1S_3", "Comp1S_4")], na.rm = T)
+df$CNS1 <- rowMeans(df[,c("Comp1S_1", "Comp1S_2", "Comp1S_3", "Comp1S_4")], na.rm = T)
 
 #Comp Frus itmes: 5, 6, 7, 8
-df$RNF1 <- rowMeans(df[,c("Comp1F_5", "Comp1F_6", "Comp1F_7", "Comp1F_8")], na.rm = T)
+df$CNF1 <- rowMeans(df[,c("Comp1F_5", "Comp1F_6", "Comp1F_7", "Comp1F_8")], na.rm = T)
 ```
 Empathic Concern
 Note, that this has a zero-point in it's scale. This means the reverse score equation is 
@@ -328,7 +333,7 @@ KM_Scl
 We apply a sigmoid function to create reflect a non-linear scaling of these scores to reflect "probablity" (which is typically expressed via a sigmoid function a la logistical regressions). Note, the sigmoid function f(x) = 1/(1+e^-x) means that f(0) = 0.5 or 50% probablity. The goal is therefore to have 3, the middle of the KAMMUS scale, to reflect this 50% probability--such that scores above 3 mark higher likelihoods, lower scores mark lower likelihoods. I.e. we center scale the KAMMUS scores to 3
 
 pKM
-"Probability of KM", or p(KM), is the final implementation of the sigmoid function on this centered KM variable.
+"Probability of KM", or p(KM), is the final implementation of the sigmoid function on this centered KM variable. **Note, this study's initial focus is on disentangling PA's influence, so remember that KM effects with this construction are sans PA**
 
 ```{r}
 df$KM_Avg <- (df$KM_P + df$KM_CSR + df$KM_M + df$KM_L)/4
@@ -379,14 +384,14 @@ df$RNF2 <- rowMeans(df[,c("Rel2F_5", "Rel2F_6", "Rel2F_7", "Rel2F_8")])
 T2 Competency Satisfaction & Frustration
 ```{r}
 #Comp Sat items: 1, 2, 3, 4
-df$RNS2 <- rowMeans(df[,c("Comp2S_1", "Comp2S_2", "Comp2S_3", "Comp2S_4")], na.rm = T)
+df$CNS2 <- rowMeans(df[,c("Comp2S_1", "Comp2S_2", "Comp2S_3", "Comp2S_4")], na.rm = T)
 
 #Comp Frus itmes: 5, 6, 7, 8
-df$RNF2 <- rowMeans(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], na.rm = T)
+df$CNF2 <- rowMeans(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], na.rm = T)
 ```
 
 
-###Checking for Data Issues, Removing Problem Cases
+### Checking for Data Issues, Removing Problem Cases
 The data cleaning is nearly done,now to check and attend to some final quality signs
 
 To start, we had an Attention Check (AttCheck_1) earlier, but we also had a 2nd attention check--whether participants corretly self-reported the video they watched. Let's cross-reference that with the actual video they were shown. People who correctly reported their video pass, those who incorrectly report fail this 2nd attention check
@@ -404,13 +409,320 @@ table(ifelse(df$Vid_SelfRep == df$Cond,
                         "Pass",
                         "Fail")) #checking the new variable is tracking correctly to our previous table
 ```
-###Evaluating Problems for Removal
-Vid_audio
-vid_issues
-Time on Vid page
+### Evaluating Problems for Removal
+How many people had issues with the audio?
+```{r}
+table(df$Vid_Audio)
+```
+Appears we have 9 people who didn't hear the audio.
 
-###Removal Criteria
-Consent
-Pass Both Attention Checks
-Time
-Technical issues
+Video Issues
+```{r}
+table(df$Vid_Issue)
+unique(df$Vid_Issue_Text)
+```
+Had 7 people who had some video issue.
+
+##### Timing
+Participants who completed the entire survey in less than five minutes will not be kept (considering the videos alone are all roughly 2.5 minutes)
+```{r}
+summary(df$Survey_Duration)
+
+subset(df, Survey_Duration <= 300) #300 seconds referring to 5minutes (60*5)
+```
+
+
+Time on Video Page
+Each of the video page's had a timer. We can check now if people stayed on the page for the entire duration of the video.
+Neutral duration: 201 seconds
+KM duration: 176 seconds
+Amuse duration: 146 seconds
+```{r}
+subset(df, Neutral_Timer < 201)
+```
+```{r}
+subset(df, KM_Timer < 176)
+```
+
+```{r}
+subset(df, Amuse_Timer < 146)
+```
+Some of these participants have timers very close to the actual video length, e.g. within 5 seconds. However, we cannot confirm whether participants immediately started the video upon entering, therefore even a timer showing 5 seconds less than the video length does not necessarily mean the participant watch all but 5 seconds of the video (i.e.the timer is more likely an overestimate, than underestimate, of the amount of the video they watched)
+
+### Removal Criteria
+Now to remove cases. We'll create a new "missing" variable to log the reasons for each cut
+
+```{r}
+df$missing <- NA
+#Consent
+df$missing[df$Consent != "Consent" | is.na(df$Consent)] <- "No Consent Confirmation"
+
+#Duration
+df$missing[df$Survey_Duration <=300] <- "Sub-5 Min Completion"
+
+#Timers
+df$missing[df$Neutral_Timer < 201] <- "Quick Neutral Video"
+df$missing[df$KM_Timer < 176] <- "Quick KM Video"
+df$missing[df$Amuse_Timer < 146] <- "Quick Amuse Video"
+
+#Attention Checks
+df$missing[df$AttCheck_2 == "Fail" | is.na(df$AttCheck_2)] <- "Failed 2nd Attention Check"
+df$missing[df$AttCheck_1 == "Fail" | is.na(df$AttCheck_1)] <- "Failed 1st Attention Check"
+
+#Technical Issues
+df$missing[df$Vid_Audio == "No"] <- "No Video Audio"
+df$missing[df$Vid_Issue == "Yes"] <- "Video Issue"
+```
+
+```{r}
+missing_table <- table(df$missing)
+missing_table
+```
+Now we can remove those people from the dataset
+```{r}
+df <- 
+  df %>% filter(is.na(missing))
+```
+
+#### Standardizing Relevant Variables
+
+Now to make some standardized versions of some variables we'll use in analysis later on 
+
+```{r}
+df$ANS1_Z <- scale(df$ANS1)
+df$ANF1_Z <- scale(df$ANF1)
+df$RNS1_Z <- scale(df$RNS1)
+df$RNF1_Z <- scale(df$RNF1)
+df$CNS1_Z <- scale(df$CNS1)
+df$CNF1_Z <- scale(df$CNF1)
+df$pKM_Z <- scale(df$pKM)
+df$NegAff_Z <- scale(df$NegAff)
+df$PosAff_Z <- scale(df$PosAff)
+df$ANS2_Z <- scale(df$ANS2)
+df$ANF2_Z <- scale(df$ANF2)
+df$RNS2_Z <- scale(df$RNS2)
+df$RNF2_Z <- scale(df$RNF2)
+df$CNS2_Z <- scale(df$CNS2)
+df$CNF2_Z <- scale(df$CNF2)
+```
+
+
+## Initial Visualizations
+```{r}
+library(ggplot2)
+library(viridis)
+library(gridExtra)
+```
+
+
+```{r}
+#Age
+p1 <- ggplot(df, aes(x = Age)) +
+  geom_histogram(binwidth = 1)
+#Race
+p2 <- ggplot(df, aes(x = Race)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+grid.arrange(p1,p2, nrow = 1)
+```
+```{r}
+#Education
+p1 <- ggplot(df, aes(x = Education)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 10, vjust = 0.5))
+#Income
+p2 <- ggplot(df, aes(x = Income)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 10, vjust = 0.5))
+
+grid.arrange(p1,p2, nrow = 2)
+```
+
+### Checking Condition Success, KM and Positive Affect
+
+Main KM variable of interest
+```{r}
+ggplot(df, aes(Cond, pKM, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE)
+```
+
+Individual KM Aspects
+```{r}
+p1 <- ggplot(df, aes(KM_P, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete=TRUE)
+
+p2 <- ggplot(df, aes(KM_CSR, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete=TRUE)
+
+p3 <- ggplot(df, aes(KM_M, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete=TRUE)
+
+p4 <- ggplot(df, aes(KM_L, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete=TRUE)
+
+grid.arrange(p1,p2,p3,p4, nrow = 2)
+
+```
+
+Positive affect
+```{r}
+ggplot(df, aes(PosAff, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete=TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+p1 <- ggplot(df, aes(ANS1, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete = T)
+
+p2 <- ggplot(df, aes(ANS2, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete = T)
+
+grid.arrange(p1,p2, nrow = 2)
+```
+
+```{r}
+p1 <- ggplot(df, aes(RNS1, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete = T)
+
+p2 <- ggplot(df, aes(RNS2, group = Cond, fill = Cond)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_viridis(discrete = T)
+
+grid.arrange(p1,p2, nrow = 2)
+```
+Autonomy Needs
+```{r}
+df_plot <- df %>% 
+  select("Cond", "ANS1", "ANS2") %>% 
+  pivot_longer(cols = c("ANS1", "ANS2"),
+               names_to = "Time",
+               values_to = "Score")
+
+p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = T)
+
+df_plot <- df %>% 
+  select("Cond", "ANF1", "ANF2") %>% 
+  pivot_longer(cols = c("ANF1", "ANF2"),
+               names_to = "Time",
+               values_to = "Score")
+
+p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = T)
+
+grid.arrange(p1, p2, nrow = 1)
+```
+
+
+Relatedness Needs
+```{r}
+df_plot <- df %>% 
+  select("Cond", "RNS1", "RNS2") %>% 
+  pivot_longer(cols = c("RNS1", "RNS2"),
+               names_to = "Time",
+               values_to = "Score")
+
+p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = T)
+
+df_plot <- df %>% 
+  select("Cond", "RNF1", "RNF2") %>% 
+  pivot_longer(cols = c("RNF1", "RNF2"),
+               names_to = "Time",
+               values_to = "Score")
+
+p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = T)
+
+grid.arrange(p1, p2, nrow = 1)
+```
+Competency Needs
+```{r}
+df_plot <- df %>% 
+  select("Cond", "CNS1", "CNS2") %>% 
+  pivot_longer(cols = c("CNS1", "CNS2"),
+               names_to = "Time",
+               values_to = "Score")
+
+p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = T)
+
+df_plot <- df %>% 
+  select("Cond", "CNF1", "CNF2") %>% 
+  pivot_longer(cols = c("CNF1", "CNF2"),
+               names_to = "Time",
+               values_to = "Score")
+
+p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = T)
+
+grid.arrange(p1, p2, nrow = 1)
+
+```
+
+## Variable Correlations
+We'll load the hmisc function to get correlation matrices with p-values
+
+First, some descriptive variables 
+```{r}
+library(Hmisc)
+df_cor <- df %>%
+  select(Age, EC, Attach_avd, Attach_anx, pKM, PosAff)
+rcorr(as.matrix(df_cor))
+```
+Now to outcome variables
+KM
+```{r}
+df_cor <- df %>%
+  select(pKM, KM_P, KM_CSR, KM_L, KM_M)
+rcorr(as.matrix(df_cor))
+```
+ARC Needs
+```{r}
+df_cor <- df %>%
+  select(ANS1, ANF1, RNS1, RNF1, CNS1, CNF1,
+         ANS2, ANF2, RNS2, RNF2, CNS2, CNF2,
+         pKM, PosAff)
+rcorr(as.matrix(df_cor))
+```
+
+(I think it's actually that KM "does what it does" by accessing and directing PA. By itself the KM variable isn't much, but it seems to really tap the PA side, even more than the amusement. I.e. PA should turn up across the board, no matter the source--if anything, KM cond might still get the bump because it's better at PA than the other stuff)
+
+
+An optional, Bayesian framing of the correlation table
+```{r}
+library(correlation)
+library(BayesFactor)
+correlation(df[, 
+               c('Age', 'EC', 'Attach_avd', 'Attach_anx',
+                 'ANS1', 'ANF1', 'RNS1', 'RNS1', 'CNS1','CNF1',
+                 'ANS2', 'ANF2', 'RNS2', 'RNS2', 'CNS2','CNF2')],
+            bayesian = T)
+```
+
