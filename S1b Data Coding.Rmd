@@ -249,28 +249,28 @@ This way, in a 7-item, 1-7 coding scheme, 1s become 7s ((7+1)-1 = 7), 2s become 
 T1 Autonomy Satisfaction & Frustration
 ```{r}
 #Aut Sat items: 1, 2, 3, 4
-df$ANS1 <- rowMeans(df[,c("Aut1S_1", "Aut1S_2", "Aut1S_3", "Aut1S_4")])
+df$ANS_1 <- rowMeans(df[,c("Aut1S_1", "Aut1S_2", "Aut1S_3", "Aut1S_4")])
 
 #Aut Frus items: 5, 6, 7, 8
-df$ANF1 <- rowMeans(df[,c("Aut1F_5", "Aut1F_6", "Aut1F_7", "Aut1F_8")])
+df$ANF_1 <- rowMeans(df[,c("Aut1F_5", "Aut1F_6", "Aut1F_7", "Aut1F_8")])
 ```
 
 T1 Relatedness Satisfaction & Frustration
 ```{r}
 #Rel Sat items: 1, 2, 3, 4
-df$RNS1 <- rowMeans(df[,c("Rel1S_1", "Rel1S_2", "Rel1S_3", "Rel1S_4")])
+df$RNS_1 <- rowMeans(df[,c("Rel1S_1", "Rel1S_2", "Rel1S_3", "Rel1S_4")])
 
 #Rel Frus itmes: 5, 6, 7, 8
-df$RNF1 <- rowMeans(df[,c("Rel1F_5", "Rel1F_6", "Rel1F_7", "Rel1F_8")])
+df$RNF_1 <- rowMeans(df[,c("Rel1F_5", "Rel1F_6", "Rel1F_7", "Rel1F_8")])
 ```
 
 T1 Competency Satisfaction & Frustration
 ```{r}
 #Comp Sat items: 1, 2, 3, 4
-df$CNS1 <- rowMeans(df[,c("Comp1S_1", "Comp1S_2", "Comp1S_3", "Comp1S_4")], na.rm = T)
+df$CNS_1 <- rowMeans(df[,c("Comp1S_1", "Comp1S_2", "Comp1S_3", "Comp1S_4")], na.rm = T)
 
 #Comp Frus itmes: 5, 6, 7, 8
-df$CNF1 <- rowMeans(df[,c("Comp1F_5", "Comp1F_6", "Comp1F_7", "Comp1F_8")], na.rm = T)
+df$CNF_1 <- rowMeans(df[,c("Comp1F_5", "Comp1F_6", "Comp1F_7", "Comp1F_8")], na.rm = T)
 ```
 Empathic Concern
 Note, that this has a zero-point in it's scale. This means the reverse score equation is 
@@ -366,28 +366,28 @@ df$PosAff <- rowMeans(df[,c("PANAS_PA1", "PANAS_PA2", "PANAS_PA3", "PANAS_PA4", 
 T2 Autonomy Satisfaction & Frustration
 ```{r}
 #Aut Sat items: 1, 2, 3, 4
-df$ANS2 <- rowMeans(df[,c("Aut2S_1", "Aut2S_2", "Aut2S_3", "Aut2S_4")])
+df$ANS_2 <- rowMeans(df[,c("Aut2S_1", "Aut2S_2", "Aut2S_3", "Aut2S_4")])
 
 #Aut Frus items: 5, 6, 7, 8
-df$ANF2 <- rowMeans(df[,c("Aut2F_5", "Aut2F_6", "Aut2F_7", "Aut2F_8")])
+df$ANF_2 <- rowMeans(df[,c("Aut2F_5", "Aut2F_6", "Aut2F_7", "Aut2F_8")])
 ```
 
 T2 Relatedness Satisfaction & Frustration
 ```{r}
 #Rel Sat items: 1, 2, 3, 4
-df$RNS2 <- rowMeans(df[,c("Rel2S_1", "Rel2S_2", "Rel2S_3", "Rel2S_4")])
+df$RNS_2 <- rowMeans(df[,c("Rel2S_1", "Rel2S_2", "Rel2S_3", "Rel2S_4")])
 
 #Rel Frus itmes: 5, 6, 7, 8
-df$RNF2 <- rowMeans(df[,c("Rel2F_5", "Rel2F_6", "Rel2F_7", "Rel2F_8")])
+df$RNF_2 <- rowMeans(df[,c("Rel2F_5", "Rel2F_6", "Rel2F_7", "Rel2F_8")])
 ```
 
 T2 Competency Satisfaction & Frustration
 ```{r}
 #Comp Sat items: 1, 2, 3, 4
-df$CNS2 <- rowMeans(df[,c("Comp2S_1", "Comp2S_2", "Comp2S_3", "Comp2S_4")], na.rm = T)
+df$CNS_2 <- rowMeans(df[,c("Comp2S_1", "Comp2S_2", "Comp2S_3", "Comp2S_4")], na.rm = T)
 
 #Comp Frus itmes: 5, 6, 7, 8
-df$CNF2 <- rowMeans(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], na.rm = T)
+df$CNF_2 <- rowMeans(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], na.rm = T)
 ```
 
 
@@ -489,21 +489,21 @@ df <-
 Now to make some standardized versions of some variables we'll use in analysis later on 
 
 ```{r}
-df$ANS1_Z <- scale(df$ANS1)
-df$ANF1_Z <- scale(df$ANF1)
-df$RNS1_Z <- scale(df$RNS1)
-df$RNF1_Z <- scale(df$RNF1)
-df$CNS1_Z <- scale(df$CNS1)
-df$CNF1_Z <- scale(df$CNF1)
+df$ANS_1_Z <- scale(df$ANS_1)
+df$ANF_1_Z <- scale(df$ANF_1)
+df$RNS_1_Z <- scale(df$RNS_1)
+df$RNF_1_Z <- scale(df$RNF_1)
+df$CNS_1_Z <- scale(df$CNS_1)
+df$CNF_1_Z <- scale(df$CNF_1)
 df$pKM_Z <- scale(df$pKM)
 df$NegAff_Z <- scale(df$NegAff)
 df$PosAff_Z <- scale(df$PosAff)
-df$ANS2_Z <- scale(df$ANS2)
-df$ANF2_Z <- scale(df$ANF2)
-df$RNS2_Z <- scale(df$RNS2)
-df$RNF2_Z <- scale(df$RNF2)
-df$CNS2_Z <- scale(df$CNS2)
-df$CNF2_Z <- scale(df$CNF2)
+df$ANS_2_Z <- scale(df$ANS_2)
+df$ANF_2_Z <- scale(df$ANF_2)
+df$RNS_2_Z <- scale(df$RNS_2)
+df$RNF_2_Z <- scale(df$RNF_2)
+df$CNS_2_Z <- scale(df$CNS_2)
+df$CNF_2_Z <- scale(df$CNF_2)
 ```
 
 
@@ -588,11 +588,11 @@ ggplot(df, aes(PosAff, group = Cond, fill = Cond)) +
 
 
 ```{r}
-p1 <- ggplot(df, aes(ANS1, group = Cond, fill = Cond)) +
+p1 <- ggplot(df, aes(ANS_1, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
   scale_fill_viridis(discrete = T)
 
-p2 <- ggplot(df, aes(ANS2, group = Cond, fill = Cond)) +
+p2 <- ggplot(df, aes(ANS_2, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
   scale_fill_viridis(discrete = T)
 
@@ -600,11 +600,11 @@ grid.arrange(p1,p2, nrow = 2)
 ```
 
 ```{r}
-p1 <- ggplot(df, aes(RNS1, group = Cond, fill = Cond)) +
+p1 <- ggplot(df, aes(RNS_1, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
   scale_fill_viridis(discrete = T)
 
-p2 <- ggplot(df, aes(RNS2, group = Cond, fill = Cond)) +
+p2 <- ggplot(df, aes(RNS_2, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
   scale_fill_viridis(discrete = T)
 
@@ -613,8 +613,8 @@ grid.arrange(p1,p2, nrow = 2)
 Autonomy Needs
 ```{r}
 df_plot <- df %>% 
-  select("Cond", "ANS1", "ANS2") %>% 
-  pivot_longer(cols = c("ANS1", "ANS2"),
+  select("Cond", "ANS_1", "ANS_2") %>% 
+  pivot_longer(cols = c("ANS_1", "ANS_2"),
                names_to = "Time",
                values_to = "Score")
 
@@ -623,8 +623,8 @@ p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   scale_fill_viridis(discrete = T)
 
 df_plot <- df %>% 
-  select("Cond", "ANF1", "ANF2") %>% 
-  pivot_longer(cols = c("ANF1", "ANF2"),
+  select("Cond", "ANF_1", "ANF_2") %>% 
+  pivot_longer(cols = c("ANF_1", "ANF_2"),
                names_to = "Time",
                values_to = "Score")
 
@@ -639,8 +639,8 @@ grid.arrange(p1, p2, nrow = 1)
 Relatedness Needs
 ```{r}
 df_plot <- df %>% 
-  select("Cond", "RNS1", "RNS2") %>% 
-  pivot_longer(cols = c("RNS1", "RNS2"),
+  select("Cond", "RNS_1", "RNS_2") %>% 
+  pivot_longer(cols = c("RNS_1", "RNS_2"),
                names_to = "Time",
                values_to = "Score")
 
@@ -649,8 +649,8 @@ p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   scale_fill_viridis(discrete = T)
 
 df_plot <- df %>% 
-  select("Cond", "RNF1", "RNF2") %>% 
-  pivot_longer(cols = c("RNF1", "RNF2"),
+  select("Cond", "RNF_1", "RNF_2") %>% 
+  pivot_longer(cols = c("RNF_1", "RNF_2"),
                names_to = "Time",
                values_to = "Score")
 
@@ -660,11 +660,23 @@ p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
 
 grid.arrange(p1, p2, nrow = 1)
 ```
+
+```{r}
+df %>% 
+  group_by(Cond) %>% 
+  summarise_at(vars(RNS_2), list(name = mean))
+
+df %>% 
+  group_by(Cond) %>% 
+  summarise_at(vars(RNS_1), list(name = mean))
+```
+
+
 Competency Needs
 ```{r}
 df_plot <- df %>% 
-  select("Cond", "CNS1", "CNS2") %>% 
-  pivot_longer(cols = c("CNS1", "CNS2"),
+  select("Cond", "CNS_1", "CNS_2") %>% 
+  pivot_longer(cols = c("CNS_1", "CNS_2"),
                names_to = "Time",
                values_to = "Score")
 
@@ -673,8 +685,8 @@ p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   scale_fill_viridis(discrete = T)
 
 df_plot <- df %>% 
-  select("Cond", "CNF1", "CNF2") %>% 
-  pivot_longer(cols = c("CNF1", "CNF2"),
+  select("Cond", "CNF_1", "CNF_2") %>% 
+  pivot_longer(cols = c("CNF_1", "CNF_2"),
                names_to = "Time",
                values_to = "Score")
 
@@ -706,8 +718,8 @@ rcorr(as.matrix(df_cor))
 ARC Needs
 ```{r}
 df_cor <- df %>%
-  select(ANS1, ANF1, RNS1, RNF1, CNS1, CNF1,
-         ANS2, ANF2, RNS2, RNF2, CNS2, CNF2,
+  select(ANS_1, ANF_1, RNS_1, RNF_1, CNS_1, CNF_1,
+         ANS_2, ANF_2, RNS_2, RNF_2, CNS_2, CNF_2,
          pKM, PosAff)
 rcorr(as.matrix(df_cor))
 ```
@@ -721,8 +733,150 @@ library(correlation)
 library(BayesFactor)
 correlation(df[, 
                c('Age', 'EC', 'Attach_avd', 'Attach_anx',
-                 'ANS1', 'ANF1', 'RNS1', 'RNS1', 'CNS1','CNF1',
-                 'ANS2', 'ANF2', 'RNS2', 'RNS2', 'CNS2','CNF2')],
+                 'ANS_1', 'ANF_1', 'RNS_1', 'RNS_1', 'CNS_1','CNF_1',
+                 'ANS_2', 'ANF_2', 'RNS_2', 'RNS_2', 'CNS_2','CNF_2')],
             bayesian = T)
 ```
 
+## Formating to Long
+
+Let's reshape the data into long format to reflect the multi-time point aspect of the data
+
+##### Autonomy Needs: Pivotting to Long
+```{r}
+ANS_L <- df %>% select(id, ANS_1_Z, ANS_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("AN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "ANS"
+  ) %>% 
+  select(-AN)
+
+ANF_L <- df %>% select(id, ANF_1_Z, ANF_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("AN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "ANF"
+  ) %>% 
+  select(-AN)
+  
+AN_L <- merge(ANS_L, ANF_L, by = c("id", "Time"))
+AN_L <- AN_L[order(AN_L$id),]
+```
+##### Relatedness Needs: Pivotting to Long
+```{r}
+RNS_L <- df %>% select(id, RNS_1_Z, RNS_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("RN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "RNS"
+  ) %>% 
+  select(-RN)
+
+RNF_L <- df %>% select(id, RNF_1_Z, RNF_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("RN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "RNF"
+  ) %>% 
+  select(-RN)
+  
+RN_L <- merge(RNS_L, RNF_L, by = c("id", "Time"))
+RN_L <- RN_L[order(RN_L$id),]
+```
+
+##### Competency Needs: Pivotting to Long
+```{r}
+CNS_L <- df %>% select(id, CNS_1_Z, CNS_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("CN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "CNS"
+  ) %>% 
+  select(-CN)
+
+CNF_L <- df %>% select(id, CNF_1_Z, CNF_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("CN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "CNF"
+  ) %>% 
+  select(-CN)
+  
+CN_L <- merge(CNS_L, CNF_L, by = c("id", "Time"))
+CN_L <- CN_L[order(CN_L$id),]
+```
+So we've split out the repeated measures variables of df into long format. The df at this point is 352 rows long, and out individual repeated meaures are exactly twice that (for two time points)
+
+```{r}
+nrow(AN_L) == nrow(RN_L)
+nrow(RN_L) == nrow(CN_L)
+nrow(df)*2 == nrow(AN_L)
+```
+```{r}
+N_L <- merge(AN_L, RN_L, by = c("id", "Time"))
+N_L <- merge(N_L, CN_L, by = c("id", "Time"))
+N_L <- N_L[order(N_L$id), ]
+N_L
+```
+
+
+Now to merge them together. Quick recap: the data is originally 2-2-1, where only the ARC needs variables are repeated multiple times, specifically twice. Therefore, when putting them together, the data that is measured only once must also show up twice in the dataset to match up with the repeated measures side. I.e. we should have each individual representned twice in the final dataset, but their data (say, Gender) will be the same twice (their gender isn't changing from Time 1 to Time 2), but we do (and only) see change in these ARC need variables.
+
+
+```{r}
+df_L <- df %>%
+  slice(rep(1:n(), each = 2)) #repeat every row in the df twice
+
+df_L <- merge(df, N_L, by = c("id"))
+df_L <- df_L[order(df_L$id),]
+```
+
+
+## Bayesian Estimation Models
+```{r}
+fit_y <- brm(mvbind(y,y2) ~ x.c + m.1 + m2.1 + time + (time+0|p|id) + (1|q|id),
+             df_l,
+             warmup = 1000, iter = 5000, chains = 4)#woo this works for the correlations!!!
+#I would then do this for the other two pair of Ys (sat/frus)
+
+fit_m2 <- brm(mvbind(m.1,m2.1) ~ x.c,
+             df_l,
+             prior = c(
+               set_prior("normal(.1,.1)", coef = "x.c1", resp = c("m1", "m21")),
+               set_prior("normal(0,5)", class = "Intercept", resp = c("m1", "m21"))
+             ),
+             warmup = 1000, iter = 5000)
+
+#ok notice, that in the og fit_m output, the effects have weird names b/c we have 2 dvs mvbinded.
+#ok notice, b/c we have categorical x here, we have dummy vars with subsequent 'dummy effects'
+#the priors are finnicky to specify, e.g. notice how brms removes "." in the resp var so now it thinks the resp var is m1 and m21 (not m2.1)
+prior_summary(fit_m2)
+summary(fit_m)
+summary(fit_m2)
+#Whew this works with mvbind! The priors noticeably are affecting the estimates of the correct parameters I specified
+#And I can see the priors being correctly specified in the prior_summary: I can specify priors in mvbind then!
+
+```
+
+```{r}
+library(bmlm)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+```
+
+The mediation is a X->M->Y pathway.
+Let's focus on the first leg: X -> M. I.e. do the conditions themselves predict pKM and PosAff (our two mediators)
+```{r}
+
+
+
+```
