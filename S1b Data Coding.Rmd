@@ -749,7 +749,7 @@ ANS_L <- df %>% select(id, ANS_1_Z, ANS_2_Z) %>%
     cols = !id,
     names_to = c("AN", "Time"),
     names_sep = (sep = "_"),
-    values_to = "ANS"
+    values_to = "ANS_Z"
   ) %>% 
   select(-AN)
 
@@ -758,7 +758,7 @@ ANF_L <- df %>% select(id, ANF_1_Z, ANF_2_Z) %>%
     cols = !id,
     names_to = c("AN", "Time"),
     names_sep = (sep = "_"),
-    values_to = "ANF"
+    values_to = "ANF_Z"
   ) %>% 
   select(-AN)
   
@@ -772,7 +772,7 @@ RNS_L <- df %>% select(id, RNS_1_Z, RNS_2_Z) %>%
     cols = !id,
     names_to = c("RN", "Time"),
     names_sep = (sep = "_"),
-    values_to = "RNS"
+    values_to = "RNS_Z"
   ) %>% 
   select(-RN)
 
@@ -781,7 +781,7 @@ RNF_L <- df %>% select(id, RNF_1_Z, RNF_2_Z) %>%
     cols = !id,
     names_to = c("RN", "Time"),
     names_sep = (sep = "_"),
-    values_to = "RNF"
+    values_to = "RNF_Z"
   ) %>% 
   select(-RN)
   
@@ -796,7 +796,7 @@ CNS_L <- df %>% select(id, CNS_1_Z, CNS_2_Z) %>%
     cols = !id,
     names_to = c("CN", "Time"),
     names_sep = (sep = "_"),
-    values_to = "CNS"
+    values_to = "CNS_Z"
   ) %>% 
   select(-CN)
 
@@ -805,7 +805,7 @@ CNF_L <- df %>% select(id, CNF_1_Z, CNF_2_Z) %>%
     cols = !id,
     names_to = c("CN", "Time"),
     names_sep = (sep = "_"),
-    values_to = "CNF"
+    values_to = "CNF_Z"
   ) %>% 
   select(-CN)
   
