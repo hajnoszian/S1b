@@ -234,6 +234,12 @@ table(df$SexualOr)
 
 #Sexual Orientation, Write-Ins
 table(df$SexualOr_Text) #no corrections applicable
+
+#Condition, Re-leveling for dummy coding
+table(df$Cond)
+df$Cond <- factor(df$Cond)
+contrasts(df$Cond) # "Amuse", alphabetically first, is the current reference grouup
+df$Cond <- fct_relevel(df$Cond, "Neutral") #re-leveling for reference group
 ```
 Now to do some broad checks across the variables to see if any outliers, impossible ratings appear etc.
 ```{r}
@@ -402,10 +408,10 @@ table(df$Vid_SelfRep, df$Cond)
 Luckly it appears the incorrect answers (8 of them) are spread across all three conditions, suggesting the incorrect answers are not due to a condition's video being particularly difficult/vague to identify when asked directly. We can label these for the 2nd attention check
 
 ```{r}
-df$AttCheck_2 <- ifelse(df$Vid_SelfRep == df$Cond,
+df$AttCheck_2 <- ifelse(as.character(df$Vid_SelfRep) == as.character(df$Cond),
                         "Pass",
                         "Fail")
-table(ifelse(df$Vid_SelfRep == df$Cond,
+table(ifelse(as.character(df$Vid_SelfRep) == as.character(df$Cond),
                         "Pass",
                         "Fail")) #checking the new variable is tracking correctly to our previous table
 ```
@@ -840,30 +846,7 @@ df_L <- df_L[order(df_L$id),]
 
 
 ## Bayesian Estimation Models
-```{r}
-fit_y <- brm(mvbind(y,y2) ~ x.c + m.1 + m2.1 + time + (time+0|p|id) + (1|q|id),
-             df_l,
-             warmup = 1000, iter = 5000, chains = 4)#woo this works for the correlations!!!
-#I would then do this for the other two pair of Ys (sat/frus)
 
-fit_m2 <- brm(mvbind(m.1,m2.1) ~ x.c,
-             df_l,
-             prior = c(
-               set_prior("normal(.1,.1)", coef = "x.c1", resp = c("m1", "m21")),
-               set_prior("normal(0,5)", class = "Intercept", resp = c("m1", "m21"))
-             ),
-             warmup = 1000, iter = 5000)
-
-#ok notice, that in the og fit_m output, the effects have weird names b/c we have 2 dvs mvbinded.
-#ok notice, b/c we have categorical x here, we have dummy vars with subsequent 'dummy effects'
-#the priors are finnicky to specify, e.g. notice how brms removes "." in the resp var so now it thinks the resp var is m1 and m21 (not m2.1)
-prior_summary(fit_m2)
-summary(fit_m)
-summary(fit_m2)
-#Whew this works with mvbind! The priors noticeably are affecting the estimates of the correct parameters I specified
-#And I can see the priors being correctly specified in the prior_summary: I can specify priors in mvbind then!
-
-```
 
 ```{r}
 library(bmlm)
@@ -873,10 +856,177 @@ library(bayestestR)
 options(mc.cores = parallel::detectCores())
 ```
 
+```{r}
+contrasts(df$Cond) #just confirming our contrast structure for our categorical variable
+```
+
+### X->M Pathway
+
 The mediation is a X->M->Y pathway.
 Let's focus on the first leg: X -> M. I.e. do the conditions themselves predict pKM and PosAff (our two mediators)
+
+#### Fitting our model
 ```{r}
+get_prior(mvbind(pKM_Z, PosAff_Z) ~ Cond,
+    data = df_L)
 
-
-
+fit_M <- brm(mvbind(pKM_Z, PosAff_Z) ~ Cond,
+    df_L,
+    prior = c(
+      set_prior("normal(1.4,.10)", class = "b", resp = c("pKMZ", "PosAffZ")),
+      set_prior("normal(1.4,.10)", class = "Intercept", resp = c("pKMZ", "PosAffZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+#that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
+
+
+#### Plotting our model diagnostics
+```{r}
+library(bayesplot)
+posterior <- as.array(fit_M)
+dimnames(posterior)
+
+color_scheme_set("viridis")
+
+## Chain Mixing Plots
+mcmc_trace(posterior,pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept"),
+           facet_args = list(ncol = 1))
+
+mcmc_trace(posterior,pars = c("b_pKMZ_CondAmuse","b_pKMZ_CondKM", "b_PosAffZ_CondAmuse", "b_PosAffZ_CondKM"),
+           facet_args = list(ncol = 2))
+
+mcmc_trace(posterior,pars = c("sigma_pKMZ","sigma_PosAffZ"),
+           facet_args = list(ncol = 1))
+
+## Autocorrelation Plots
+mcmc_acf(posterior,pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept"))
+
+mcmc_acf(posterior,pars = c("b_pKMZ_CondAmuse","b_pKMZ_CondKM", "b_PosAffZ_CondAmuse", "b_PosAffZ_CondKM"))
+
+mcmc_acf(posterior,pars = c("sigma_pKMZ","sigma_PosAffZ"))
+```
+
+#### Summaries of the Model
+```{r}
+summary(fit_M)
+```
+Remember, all of these effects are the **medians** of their respective distributions.
+
+Another, perhaps easier to see though less detailed summary
+```{r}
+describe_posterior(fit_M)
+```
+
+
+From Vehtari, Gelman, Simpson, Carpenter, Burkner (2019), we know that convergence of the MCs is not necessarily the same across the entire parameter space. Our chain plots show convergence visually, but we can also evaluate convergence in terms of how much stable sampling we were able to achieve in both the "main" part of the distribution and at the outer (typically less stable) ends.
+"Bulk_ESS" is the term Bayesians have previously called "Effective Sample Size." It means the number of effective, i.e. independent, samples in the center of the poterior distribution (i.e. make up the "bulk" of the posterior). "Tail_ESS" is consequently about the tails of that distribution, allowing us to see how many effective samples are in the outer sides of the distribution. Put together, we can get a clearer picture of parameter stability across the distribution. 
+
+#### Plotting Model Posteriors
+```{r}
+mcmc_areas(
+  posterior,
+  pars = c("b_pKMZ_Intercept", "b_PosAffZ_Intercept",
+           "b_pKMZ_CondAmuse", "b_pKMZ_CondKM", "b_PosAffZ_CondAmuse","b_PosAffZ_CondKM",
+           "sigma_pKMZ", "sigma_PosAffZ"),
+  prob = 0.95,
+  prob_outer = 0.99,
+  point_est = "median"
+)
+```
+
+```{r}
+mcmc_intervals(
+  posterior,
+  pars = c("b_pKMZ_Intercept", "b_PosAffZ_Intercept",
+           "b_pKMZ_CondAmuse", "b_pKMZ_CondKM", "b_PosAffZ_CondAmuse","b_PosAffZ_CondKM",
+           "sigma_pKMZ", "sigma_PosAffZ"),
+  prob = 0.95,
+  prob_outer = 0.99,
+  point_est = "mean"
+)
+```
+
+Marginal (All Chains) Posterior Distributions
+```{r}
+mcmc_dens(
+  posterior,
+  pars = c("b_pKMZ_CondAmuse", "b_pKMZ_CondKM", "b_PosAffZ_CondAmuse","b_PosAffZ_CondKM")
+)
+```
+
+Trying to see direct ROPE numbers
+```{r}
+describe_posterior(fit_M) #note, multivariate is not supported yet with the ROPE function in BayestestR
+```
+Looks like we won't be able to see direct ROPE metrics using these multivariate models yet. Can still evaluate the main benchmark (does the CI cross +/- .05 or not) from the posterior estimates and CI, but won't be able to measure specific percentage this way.
+
+
+### Autonomy Model
+We'll start with autonomy. We're again using multivariate functions here to map both autonomy satisfaction and frustration at the same time. This side of the mediation does have repeated measures, so we'll use a multi-level model formulation. Since our outcomes are highly correlated, we'll also be setting the random intercepts to correlate between each outcome.  
+
+#### Fitting our model
+```{r}
+get_prior(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+    data = df_L)
+
+fit_A <- brm(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+    data = df_L,
+    prior = c(
+      set_prior("normal(0,2)", class = "b", coef = "pKM_Z", resp = c("ANSZ", "ANFZ")),
+      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z", resp = "ANSZ"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z", resp = "ANFZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "Intercept", resp = c("ANSZ", "ANFZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+
+
+#fit_y <- brm(mvbind(y,y2) ~ x.c + m.1 + m2.1 + time + (time+0|p|id) + (1|q|id),
+#             df_l,
+#             warmup = 1000, iter = 5000, chains = 4)
+
+#that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
+```
+#### Plotting our model diagnostics
+```{r}
+library(bayesplot)
+posterior <- as.array(fit_A)
+dimnames(posterior)
+
+color_scheme_set("viridis")
+
+## Chain Mixing Plots
+mcmc_trace(posterior,pars = c("b_ANSZ_Intercept","b_ANFZ_Intercept"),
+           facet_args = list(ncol = 1))
+
+mcmc_trace(posterior,pars = c("b_ANSZ_CondAmuse","b_ANSZ_CondKM", "b_ANSZ_PosAff_Z", "b_ANSZ_pKM_Z"),
+           facet_args = list(ncol = 2))
+
+mcmc_trace(posterior,pars = c("b_ANFZ_CondAmuse","b_ANFZ_CondKM", "b_ANFZ_PosAff_Z", "b_ANFZ_pKM_Z"),
+           facet_args = list(ncol = 2))
+
+mcmc_trace(posterior,pars = c("sigma_ANSZ","sigma_ANFZ"),
+           facet_args = list(ncol = 1))
+
+## Autocorrelation Plots
+mcmc_acf(posterior,pars = c("b_ANSZ_Intercept","b_ANFZ_Intercept"))
+
+mcmc_acf(posterior,pars = c("b_ANSZ_CondAmuse","b_ANSZ_CondKM", "b_ANSZ_PosAff_Z", "b_ANSZ_pKM_Z"))
+
+mcmc_acf(posterior,pars = c("b_ANFZ_CondAmuse","b_ANFZ_CondKM", "b_ANFZ_PosAff_Z", "b_ANFZ_pKM_Z"))
+
+mcmc_acf(posterior,pars = c("sigma_ANSZ","sigma_ANFZ"))
+```
+#### Summaries of the Model
+```{r}
+summary(fit_A)
+```
+Remember, all of these effects are the **medians** of their respective distributions.
+
+Another, perhaps easier to see though less detailed summary
+```{r}
+describe_posterior(fit_A)
+```
+Do I need to model time earlier in the model equation?
