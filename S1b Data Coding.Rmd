@@ -982,13 +982,9 @@ fit_A <- brm(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
     ),
     warmup = 5000, iter = 10000, chains = 4)
 
-
-#fit_y <- brm(mvbind(y,y2) ~ x.c + m.1 + m2.1 + time + (time+0|p|id) + (1|q|id),
-#             df_l,
-#             warmup = 1000, iter = 5000, chains = 4)
-
 #that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
+
 #### Plotting our model diagnostics
 ```{r}
 library(bayesplot)
@@ -1030,3 +1026,21 @@ Another, perhaps easier to see though less detailed summary
 describe_posterior(fit_A)
 ```
 Do I need to model time earlier in the model equation?
+```{r}
+fit_A2 <- brm(mvbind(ANS_Z, ANF_Z) ~ Time + Cond + PosAff_Z + pKM_Z + (1|p|id),
+    data = df_L,
+    prior = c(
+      set_prior("normal(0,2)", class = "b", coef = "pKM_Z", resp = c("ANSZ", "ANFZ")),
+      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z", resp = "ANSZ"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z", resp = "ANFZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "Intercept", resp = c("ANSZ", "ANFZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+```
+
+```{r}
+describe_posterior(fit_A2)
+```
+Nope, formula inclusion order does not seem to matter--effects are all turning out basically the same.
