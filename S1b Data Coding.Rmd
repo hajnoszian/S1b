@@ -21,6 +21,7 @@ library(bmlm)
 library(brms)
 library(qgraph)
 library(bayestestR)
+library(ggExtra)
 options(mc.cores = parallel::detectCores())
 
 ```
@@ -681,6 +682,7 @@ p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
 grid.arrange(p1, p2, nrow = 1)
 ```
 
+
 ```{r}
 df %>% 
   group_by(Cond) %>% 
@@ -883,7 +885,9 @@ Let's focus on the first leg: X -> M. I.e. do the conditions themselves predict 
 ```{r}
 get_prior(mvbind(pKM_Z, PosAff_Z) ~ Cond,
     data = df_L)
+```
 
+```{r}
 fit_M <- brm(mvbind(pKM_Z, PosAff_Z) ~ Cond,
     df_L,
     prior = c(
@@ -893,6 +897,7 @@ fit_M <- brm(mvbind(pKM_Z, PosAff_Z) ~ Cond,
     warmup = 5000, iter = 10000, chains = 4)
 #that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
+
 
 
 #### Plotting our model diagnostics
@@ -1243,20 +1248,103 @@ plotmat(M, pos = c(1,2,2,1), relsize = 1.08,
 
 
 ```
+ANS by pKM
+```{r}
+ggmarginal(
+  ggplot(df_L, aes(x=pKM_Z, y = ANS_Z, color = Cond)) +
+    geom_point() +
+    geom_smooth(method = lm),
+  groupColour = T, groupFill = T)
+```
+ANF
+```{r}
+ggMarginal(
+  ggplot(df_L, aes(x=pKM_Z, y = ANF_Z, color = Cond)) +
+    geom_point() +
+    geom_smooth(method = lm),
+groupColour = T, groupFill = T)
+```
+RNS
+```{r}
+ggMarginal(
+    ggplot(df_L, aes(x=pKM_Z, y = RNS_Z, color = Cond)) +
+      geom_point() +
+      geom_smooth(method = lm),
+  groupColour = TRUE, groupFill = TRUE)
+```
+RNF
+```{r}
+ggMarginal(
+    ggplot(df_L, aes(x=pKM_Z, y = RNF_Z, color = Cond)) +
+      geom_point() +
+      geom_smooth(method = lm),
+  groupColour = TRUE, groupFill = TRUE)
+```
 
+CNS
+```{r}
+ggMarginal(
+    ggplot(df_L, aes(x=pKM_Z, y = CNS_Z, color = Cond)) +
+      geom_point() +
+      geom_smooth(method = lm),
+  groupColour = TRUE, groupFill = TRUE)
+```
+CNF
+```{r}
+ggMarginal(
+    ggplot(df_L, aes(x=pKM_Z, y = CNF_Z, color = Cond)) +
+      geom_point() +
+      geom_smooth(method = lm),
+  groupColour = TRUE, groupFill = TRUE)
+```
+
+Mediator (i.e. Did the Conditions work)
+```{r}
+describe_posterior(fit_M)
+#summary(fit_M) more detailed version
+```
+##### pKMZ ##### 
+It appears that the KM condition was very successful in instilling pKM. The Amusement condition had an effect insofar as it cancelled out the low scores of the neutral (intercept) condition. I.e. Neutral condition folks had very low KM scores (-.67 Zs below the overall average), Amusement condition folks had middling KM scores (-.67 + .67 = 0 Zs), KM condition folks had higher KM scores (-.67 + 1.76 = ~1.09)
+#### Positive Affect #####
+The Amusement condition was successful in instilling higher PA, however the KM condition did nearly as well too--perhaps even a bit better than the Amusement condition. The Neutral condition folks had lower PA scores.
+Suggestive already that the KM videos, being of human relationships, are even more potent at instilling good feelings than of simple "comedic" events.
 
 Autonomy
 ```{r}
 describe_posterior(fit_A)
+#summary(fit_A)
 ```
+##### ANF #####
+Neutral condition had a zero effect on ANF. The KM and Amuse conditions themselves too had little effect. PA had a negative effect on ANF, such that higher PA was associated with lower ANF (CI well outside ROPE). pKM (remember, a "PA"-less KM variable) had a positive effect on ANF, such that higher pKM scores was associated with higher ANF (CI well outside ROPE). 
+This is suggestive that KM may have some element of increasing people's feelings of self-"dis-control", which is contrast to the typical effect of "feeling good" reducing such feelings of "dis-control." Considering a UK/Western sample, we may be seeing an effect of cultural expectations regarding emotional control. However, considering PA and pKM have effects in the opposite direction, this is a "PA"-less KM variable effect may *normally* be flattened out when including the PA aspect as per usual KM formulation. I.e. we may be seeing an effect not usually seen by other KM research that has always usually considered these together.
+
+##### ANS #####
+Neutral condition had a positive effect on ANS. The Amuse condition had little to no effect on ANS (.16 + -.17 = ~-.01). The KM condition had a small negative effect on ANS (.16+-.28 = ~-.12). PA had a positive effect on ANS, such that higher PA was associated with higher ANS. pKM had little to no effect on ANS (median estimate within ROPE, 95% CI crossing zero).
+PA seems to have an effect on ANS, however "PA-less" KM does not. I.e. to the extent that KM has *any* effect on ANS, it is entirely driven by the fact that KM is usually considered with PA. Poignant emotions of connectedness to others does not seem to satisfy feelings of autonomy, perhaps because the emotion is a poignant reminder of communality--which may be mistaken for, or intermixed with, signals of dependency.
+
+TLDR: KM, sans it's PA feature, makes people feel less autonomous rather than more. (at least in this Western sample)
 
 Relatedness
 ```{r}
 describe_posterior(fit_R)
+#summary(fit_R)
 ```
+##### RNF #####
+The Neutral condition had a near zero effect on RNF scores. The Amusement condition was similarly small, though perhaps slightly negative (wide CI, crossing zero though). The KM condition had a positive effect on RNF scores (though complicated by another wide CI, crossing zero as well). PA had a negative effect on RNF, such that higher PA was associated with lower RNF (CI far outside ROPE). KM had a near zero effect on RNF (largely within ROPE).
+Much like our last study, we see that KM has a negligible effect on RNF and any effect that *may* emerge from it would likely be largely driven by PA. PA is otherwise functioning as theoretically expected.
 
+##### RNS #####
+The neutral condition has a positive effect on RNS scores. The Amusement condition, and KM condition even moreso, were lower by comparison (remember these are in terms of model intercepts, accounting alongside the specific effects that are modeled, not exactly "means"--see earlier figure how all 3 conditions had largely the same means at time 1). PA had a positive effect on RNS, such that higher PA was associated with higher RNS (CI well outside ROPE). KM had a positive effect on RNS, such that higher KM was associated with higher RNS (CI outside of ROPE).
+This is good replication of our last study--"PA-less" KM has nearly the exact same effect as seen in our last study, though a tiny bit more removed from the ROPE. Once again, we see PA working as theoretically expected. But the crucial thing for us is that KM, even without the PA aspect, retains some effect on RNS, suggesting that KM is not entirely synonymous (or replacable) with PA.
 Competency
 ```{r}
 describe_posterior(fit_C)
+#summary(fit_C)
 ```
+##### CNF #####
+The Neutral condition had no effect on CNF scores. The Amusement condition had a slight positive effect on CNF. The KM condition had a near-zero effect on CNF. PA had a negative effect on CNF, such that higher PA was associated with lower CNF (CI well outside ROPE). KM had a positive effect on CNF, such that higher KM scores were associated with higher CNF (CI well outside ROPE). 
+Similar to autonomy, we see a divergence in PA and KM effects. PA is functioning as theoretically expected. "PA-less" KM seems to increase feelings of incompetence, perhaps an indicator again of "emotional takeover." Or, in terms of KM theory, this may be very prosocially driven emotional development--this could be a driver of KM's theoretical prosocial motivation, a way to reduce competence frustration. It should be noted that frustration is not the mere absence of satisfaction--this is more than simply not feeling competent, but the negative feelingt that comes from not feeling competent. I.e. KM increasing CNF may fit into KM's anthropological theory of promoting extension and commitment to a community.
 
+##### CNS #####
+The Neutral condition had little to no  effect on CNS scores. The Amusement condition had little to no effect on CNS. The KM condition had little to no effect on CNS, though perhaps negative effect (wide CI, crossing zero still). PA had a positive effect on CNS, such that higher PA was associated with higher CNS (CI well outside ROPE). KM had a near-zero, negative effect on CNS such that higher KM was associated with lower CNS (estimate negative, but wide CI crossing zero and almost entirely encompassing ROPE).
+Again, PA is functioning as theoretically expected. "PA-less" KM has a very noisy effect here, such that any conclusions in one way or the other is hard. If anything, we'd say KM reduces competency satisfaction--which is line with the aforementioned anthropological theorizing of KM in terms of social promotion and community we see in CNF--however these numbers are too messy for me to be confident.
