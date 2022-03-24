@@ -30,7 +30,6 @@ options(mc.cores = parallel::detectCores())
 ### Data Loading
 Now to load in the data. I'm saving an "anchor" dataframe (df) as a reference point to the original data. We'll iterate using the df dataframe from now on.
 ```{r}
-library(readr)
 df <- df_anchor <- read_csv("Ian+Study+1b_March+17,+2022_09.18.csv")
 ```
 
@@ -59,6 +58,7 @@ df$id <- 1:nrow(df)
 df <- df %>% 
   select(id, everything()) #moving the id variable to the front of the df
 ```
+
 #### Renaming Columns
 We have some columns with unhelpful names. Let's change that. We'll also change that FL_5_DO from earlier into a more recognizable and helpful variable name.
 
@@ -99,7 +99,7 @@ Now let's make sure the variables are the correct type of data. I.e. that numeri
 Numeric Data
 ```{r}
 df$Survey_Duration <- as.numeric(df$Survey_Duration)
-df[, c(4:71, 73:113)] <- sapply(df[, c(4:71, 73:113)], as.numeric)
+df[, c(4:71, 73:113)] <- sapply(df[, c(4:71, 73:113)], as.numeric) #just choosing all the columns by index to be made numeric
 df$Age <- as.numeric(df$Age)
 ```
 
@@ -408,9 +408,9 @@ df$CNF_2 <- rowMeans(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], na.
 
 
 ### Checking for Data Issues, Removing Problem Cases
-The data cleaning is nearly done,now to check and attend to some final quality signs
+The data processing is nearly done,now to check and attend to some final quality signs
 
-To start, we had an Attention Check (AttCheck_1) earlier, but we also had a 2nd attention check--whether participants corretly self-reported the video they watched. Let's cross-reference that with the actual video they were shown. People who correctly reported their video pass, those who incorrectly report fail this 2nd attention check
+To start, we had an Attention Check (AttCheck_1) earlier, but we also had a 2nd attention check--whether participants correctly self-reported the video they watched. Let's cross-reference that with the actual video they were shown. People who correctly reported their video pass, those who incorrectly report fail this 2nd attention check
 
 ```{r}
 table(df$Vid_SelfRep, df$Cond)
@@ -537,13 +537,19 @@ library(gridExtra)
 
 
 ```{r}
+nrow(df) # = 352
 #Age
 p1 <- ggplot(df, aes(x = Age)) +
-  geom_histogram(binwidth = 1)
+  geom_histogram(binwidth = 1) +
+  labs(title = "Age Distribution (n=352)",
+       x = "Age (Binwidth = 1)",
+       y = "Count")
 #Race
 p2 <- ggplot(df, aes(x = Race)) +
   geom_bar() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  labs(title = "Ethnicity/Race Distribution (n=352)",
+       y = "Count")
 
 grid.arrange(p1,p2, nrow = 1)
 ```
@@ -551,11 +557,17 @@ grid.arrange(p1,p2, nrow = 1)
 #Education
 p1 <- ggplot(df, aes(x = Education)) +
   geom_bar() +
-  theme(axis.text.x = element_text(angle = 10, vjust = 0.5))
+  theme(axis.text.x = element_text(angle = 10, vjust = 0.5))+
+  labs(title = "Education Distribution (n=352)",
+       x = "Education",
+       y = "Count")
 #Income
 p2 <- ggplot(df, aes(x = Income)) +
   geom_bar() +
-  theme(axis.text.x = element_text(angle = 10, vjust = 0.5))
+  theme(axis.text.x = element_text(angle = 10, vjust = 0.5))+
+  labs(title = "Income Distribution (n=352)",
+       x = "Income",
+       y = "Count")
 
 grid.arrange(p1,p2, nrow = 2)
 ```
@@ -567,55 +579,62 @@ Main KM variable of interest
 ggplot(df, aes(Cond, pKM, fill = Cond)) +
   geom_violin() +
   geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
-  scale_fill_viridis(discrete=TRUE)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Violin Distribution",
+       x = "",
+       y = "Density")
 ```
 
 Individual KM Aspects
 ```{r}
 p1 <- ggplot(df, aes(KM_P, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete=TRUE)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "Physiological Signs",
+       y = "Density")
 
 p2 <- ggplot(df, aes(KM_CSR, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete=TRUE)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "CSR Appraisal",
+       y = "Density")
 
 p3 <- ggplot(df, aes(KM_M, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete=TRUE)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "Prosocial Motivation",
+       y = "Density")
 
 p4 <- ggplot(df, aes(KM_L, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete=TRUE)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "Lexical Label",
+       y = "Density")
 
 grid.arrange(p1,p2,p3,p4, nrow = 2)
-
 ```
 
 Positive affect
 ```{r}
 ggplot(df, aes(PosAff, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete=TRUE)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "Positive Affect",
+       y = "Density")
 ```
-
-
-
-
-
-
-
-
-
 
 ```{r}
 p1 <- ggplot(df, aes(ANS_1, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "ANS Time 1",
+       y = "Density")
 
 p2 <- ggplot(df, aes(ANS_2, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "ANS Time 2",
+       y = "Density")
 
 grid.arrange(p1,p2, nrow = 2)
 ```
@@ -623,11 +642,15 @@ grid.arrange(p1,p2, nrow = 2)
 ```{r}
 p1 <- ggplot(df, aes(RNS_1, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "RNS Time 1",
+       y = "Density")
 
 p2 <- ggplot(df, aes(RNS_2, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(x = "RNS Time 1",
+       y = "Density")
 
 grid.arrange(p1,p2, nrow = 2)
 ```
@@ -641,7 +664,8 @@ df_plot <- df %>%
 
 p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   geom_boxplot() +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(y = "Score")
 
 df_plot <- df %>% 
   select("Cond", "ANF_1", "ANF_2") %>% 
@@ -651,7 +675,8 @@ df_plot <- df %>%
 
 p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   geom_boxplot() +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(y = "Score")
 
 grid.arrange(p1, p2, nrow = 1)
 ```
@@ -667,7 +692,8 @@ df_plot <- df %>%
 
 p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   geom_boxplot() +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(y = "Score")
 
 df_plot <- df %>% 
   select("Cond", "RNF_1", "RNF_2") %>% 
@@ -677,7 +703,8 @@ df_plot <- df %>%
 
 p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   geom_boxplot() +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(y = "Score")
 
 grid.arrange(p1, p2, nrow = 1)
 ```
@@ -704,7 +731,8 @@ df_plot <- df %>%
 
 p1 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   geom_boxplot() +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(y = "Score")
 
 df_plot <- df %>% 
   select("Cond", "CNF_1", "CNF_2") %>% 
@@ -714,7 +742,8 @@ df_plot <- df %>%
 
 p2 <- ggplot(df_plot, aes(x = Time, y = Score, fill = Cond)) +
   geom_boxplot() +
-  scale_fill_viridis(discrete = T)
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(y = "Score")
 
 grid.arrange(p1, p2, nrow = 1)
 
@@ -864,7 +893,7 @@ df_L <- df_L[order(df_L$id),]
 ## Bayesian Estimation Models
 
 
-```{r eval=FALSE}
+```{r eval=FALSE, warning=FALSE}
 library(bmlm)
 library(brms)
 library(qgraph)
@@ -882,6 +911,7 @@ The mediation is a X->M->Y pathway.
 Let's focus on the first leg: X -> M. I.e. do the conditions themselves predict pKM and PosAff (our two mediators)
 
 #### Fitting our model
+Let's check the names of the priors in the model so that we can properly specify them when running the actual model.
 ```{r}
 get_prior(mvbind(pKM_Z, PosAff_Z) ~ Cond,
     data = df_L)
@@ -897,8 +927,6 @@ fit_M <- brm(mvbind(pKM_Z, PosAff_Z) ~ Cond,
     warmup = 5000, iter = 10000, chains = 4)
 #that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
-
-
 
 #### Plotting our model diagnostics
 ```{r}
@@ -936,7 +964,6 @@ Another, perhaps easier to see though less detailed summary
 ```{r}
 describe_posterior(fit_M)
 ```
-
 
 From Vehtari, Gelman, Simpson, Carpenter, Burkner (2019), we know that convergence of the MCs is not necessarily the same across the entire parameter space. Our chain plots show convergence visually, but we can also evaluate convergence in terms of how much stable sampling we were able to achieve in both the "main" part of the distribution and at the outer (typically less stable) ends.
 "Bulk_ESS" is the term Bayesians have previously called "Effective Sample Size." It means the number of effective, i.e. independent, samples in the center of the poterior distribution (i.e. make up the "bulk" of the posterior). "Tail_ESS" is consequently about the tails of that distribution, allowing us to see how many effective samples are in the outer sides of the distribution. Put together, we can get a clearer picture of parameter stability across the distribution. 
@@ -1011,32 +1038,49 @@ fit_A <- brm(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
 ```{r}
 library(bayesplot)
 posterior <- as.array(fit_A)
-dimnames(posterior)
+dimnames(posterior)$variable[1:18]
 
 color_scheme_set("viridis")
-
-## Chain Mixing Plots
+```
+##### Chain Mixing Plots
+```{r}
 mcmc_trace(posterior,pars = c("b_ANSZ_Intercept","b_ANFZ_Intercept"),
            facet_args = list(ncol = 1))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("b_ANSZ_CondAmuse","b_ANSZ_CondKM", "b_ANSZ_PosAff_Z", "b_ANSZ_pKM_Z"),
            facet_args = list(ncol = 2))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("b_ANFZ_CondAmuse","b_ANFZ_CondKM", "b_ANFZ_PosAff_Z", "b_ANFZ_pKM_Z"),
            facet_args = list(ncol = 2))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("sigma_ANSZ","sigma_ANFZ"),
            facet_args = list(ncol = 1))
+```
 
-## Autocorrelation Plots
+##### Autocorrelation Plots
+```{r}
 mcmc_acf(posterior,pars = c("b_ANSZ_Intercept","b_ANFZ_Intercept"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("b_ANSZ_CondAmuse","b_ANSZ_CondKM", "b_ANSZ_PosAff_Z", "b_ANSZ_pKM_Z"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("b_ANFZ_CondAmuse","b_ANFZ_CondKM", "b_ANFZ_PosAff_Z", "b_ANFZ_pKM_Z"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("sigma_ANSZ","sigma_ANFZ"))
 ```
+
+
 #### Summaries of the Model
 ```{r}
 summary(fit_A)
@@ -1080,6 +1124,7 @@ Nope, formula inclusion order does not seem to matter--effects are all turning o
 get_prior(mvbind(RNS_Z, RNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
     data = df_L)
 ```
+
 ```{r}
 fit_R <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
     data = df_L,
@@ -1101,34 +1146,51 @@ fit_R <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
 ```{r}
 library(bayesplot)
 posterior <- as.array(fit_R)
-dimnames(posterior)
+dimnames(posterior)$variable[1:18]
 
 color_scheme_set("viridis")
+```
 
-## Chain Mixing Plots
+##### Chain Mixing Plots
+```{r}
 mcmc_trace(posterior,pars = c("b_RNSZ_Intercept","b_RNFZ_Intercept"),
            facet_args = list(ncol = 1))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("b_RNSZ_CondAmuse","b_RNSZ_CondKM", "b_RNSZ_PosAff_Z", "b_RNSZ_pKM_Z"),
            facet_args = list(ncol = 2))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("b_RNFZ_CondAmuse","b_RNFZ_CondKM", "b_RNFZ_PosAff_Z", "b_RNFZ_pKM_Z"),
            facet_args = list(ncol = 2))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("sigma_RNSZ","sigma_RNFZ"),
            facet_args = list(ncol = 1))
+```
 
-## Autocorrelation Plots
+##### Autocorrelation Plots
+```{r}
 mcmc_acf(posterior,pars = c("b_RNSZ_Intercept","b_RNFZ_Intercept"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("b_RNSZ_CondAmuse","b_RNSZ_CondKM", "b_RNSZ_PosAff_Z", "b_RNSZ_pKM_Z"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("b_RNFZ_CondAmuse","b_RNFZ_CondKM", "b_RNFZ_PosAff_Z", "b_RNFZ_pKM_Z"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("sigma_RNSZ","sigma_RNFZ"))
 ```
 
-#### Summaries of the Model
+
+#### Summaries of the Model ####
 ```{r}
 summary(fit_R)
 ```
@@ -1168,34 +1230,53 @@ fit_C <- brm(mvbind(CNS_Z, CNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
 
 #that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
+
 #### Plotting our model diagnostics
 ```{r}
 library(bayesplot)
 posterior <- as.array(fit_C)
-dimnames(posterior)
+dimnames(posterior)$variable[1:18]
 
 color_scheme_set("viridis")
+```
 
+##### Chain Mixing Plots
+```{r}
 ## Chain Mixing Plots
 mcmc_trace(posterior,pars = c("b_CNSZ_Intercept","b_CNFZ_Intercept"),
            facet_args = list(ncol = 1))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("b_CNSZ_CondAmuse","b_CNSZ_CondKM", "b_CNSZ_PosAff_Z", "b_CNSZ_pKM_Z"),
            facet_args = list(ncol = 2))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("b_CNFZ_CondAmuse","b_CNFZ_CondKM", "b_CNFZ_PosAff_Z", "b_CNFZ_pKM_Z"),
            facet_args = list(ncol = 2))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("sigma_CNSZ","sigma_CNFZ"),
            facet_args = list(ncol = 1))
+```
 
+##### Autocorrelation Plots
+```{r}
 ## Autocorrelation Plots
 mcmc_acf(posterior,pars = c("b_CNSZ_Intercept","b_CNFZ_Intercept"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("b_CNSZ_CondAmuse","b_CNSZ_CondKM", "b_CNSZ_PosAff_Z", "b_CNSZ_pKM_Z"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("b_CNFZ_CondAmuse","b_CNFZ_CondKM", "b_CNFZ_PosAff_Z", "b_CNFZ_pKM_Z"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("sigma_CNSZ","sigma_CNFZ"))
 ```
 
@@ -1248,12 +1329,16 @@ plotmat(M, pos = c(1,2,2,1), relsize = 1.08,
 
 
 ```
+
 ANS by pKM
 ```{r}
-ggmarginal(
+ggMarginal(
   ggplot(df_L, aes(x=pKM_Z, y = ANS_Z, color = Cond)) +
     geom_point() +
-    geom_smooth(method = lm),
+    geom_smooth(method = lm)+
+    scale_colour_discrete(name = "Condition") +
+  labs(x = "pKM Z-Scored",
+       y = "ANS Z-Scored"),
   groupColour = T, groupFill = T)
 ```
 ANF
@@ -1261,7 +1346,10 @@ ANF
 ggMarginal(
   ggplot(df_L, aes(x=pKM_Z, y = ANF_Z, color = Cond)) +
     geom_point() +
-    geom_smooth(method = lm),
+    geom_smooth(method = lm) +
+    scale_colour_discrete(name = "Condition") +
+  labs(x = "pKM Z-Scored",
+       y = "ANF Z-Scored"),
 groupColour = T, groupFill = T)
 ```
 RNS
@@ -1269,7 +1357,10 @@ RNS
 ggMarginal(
     ggplot(df_L, aes(x=pKM_Z, y = RNS_Z, color = Cond)) +
       geom_point() +
-      geom_smooth(method = lm),
+      geom_smooth(method = lm)+
+    scale_colour_discrete(name = "Condition") +
+  labs(x = "pKM Z-Scored",
+       y = "RNS Z-Scored"),
   groupColour = TRUE, groupFill = TRUE)
 ```
 RNF
@@ -1277,7 +1368,10 @@ RNF
 ggMarginal(
     ggplot(df_L, aes(x=pKM_Z, y = RNF_Z, color = Cond)) +
       geom_point() +
-      geom_smooth(method = lm),
+      geom_smooth(method = lm)+
+    scale_colour_discrete(name = "Condition") +
+  labs(x = "pKM Z-Scored",
+       y = "RNF Z-Scored"),
   groupColour = TRUE, groupFill = TRUE)
 ```
 
@@ -1286,7 +1380,10 @@ CNS
 ggMarginal(
     ggplot(df_L, aes(x=pKM_Z, y = CNS_Z, color = Cond)) +
       geom_point() +
-      geom_smooth(method = lm),
+      geom_smooth(method = lm)+
+    scale_colour_discrete(name = "Condition") +
+  labs(x = "pKM Z-Scored",
+       y = "CNS Z-Scored"),
   groupColour = TRUE, groupFill = TRUE)
 ```
 CNF
@@ -1294,7 +1391,10 @@ CNF
 ggMarginal(
     ggplot(df_L, aes(x=pKM_Z, y = CNF_Z, color = Cond)) +
       geom_point() +
-      geom_smooth(method = lm),
+      geom_smooth(method = lm)+
+    scale_colour_discrete(name = "Condition") +
+  labs(x = "pKM Z-Scored",
+       y = "CNF Z-Scored"),
   groupColour = TRUE, groupFill = TRUE)
 ```
 
