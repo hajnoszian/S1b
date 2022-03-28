@@ -23,7 +23,6 @@ library(qgraph)
 library(bayestestR)
 library(ggExtra)
 options(mc.cores = parallel::detectCores())
-
 ```
 ## Data Entry & Cleaning
 
@@ -48,7 +47,7 @@ df <- select(df,
 df <- df[-c(1,2),] #removing participant metadata rows (first two rows are metadata)
 
 df <- select(df,
-       -c(Aut1_DO, Rel1_DO, Comp1_DO, EC_DO, Attach_DO,KM_P_DO, KM_CSR_DO, KM_M_DO, KM_L_DO,PANAS_DO, Aut2_DO, Rel2_DO, Comp2_DO, Vid_SelfRep_DO, FL_3_DO, FL_31_DO, FL_33_DO, SC0)) # removing unnecessary block/item ordering columns
+       -c(Aut1_DO, Rel1_DO, Comp1_DO, EC_DO, Attach_DO,KM_P_DO, KM_CSR_DO, KM_M_DO, KM_L_DO,PANAS_DO, Aut2_DO, Rel2_DO, Comp2_DO, Vid_SelfRep_DO, FL_3_DO, FL_31_DO, FL_33_DO, SC0)) # removing unnecessary display ordering columns
 ```
 
 #### Reference ID Variable
@@ -167,7 +166,7 @@ table(df$Gender)
 table(df$Gender_7_TEXT)# No write-in gender responses
 
 #Race
-table(df$Race) #Based on survey, 0 = White, 1 = Black, African, Caribbean, 2 = Hispanic, Latino, Chicano, 3 = East Asian, 4 = South Asian, 5 = Southeast Asian, 6 = West Asian (unrepresented in data), 7 = Middle Eastern, Arab, 8 = Aboriginal, Indigenouse, Native (unrepresented in data), 9 = Mixed or Multiple Ethnic Groups, 10 = Write-in
+table(df$Race) #Based on survey, 0 = White, 1 = Black, African, Caribbean, 2 = Hispanic, Latino, Chicano, 3 = East Asian, 4 = South Asian, 5 = Southeast Asian, 6 = West Asian (unrepresented in data), 7 = Middle Eastern, Arab, 8 = Aboriginal, Indigenous, Native (unrepresented in data), 9 = Mixed or Multiple Ethnic Groups, 10 = Write-in
 df$Race <- factor(df$Race, labels = c(
   "White, Caucasian, Anglo",
   "Black, African, Caribbean",
@@ -362,8 +361,8 @@ df$pKM <- 1/(1+(exp(1)^-(df$KM_Scl)))
 You can see this non-linear pathway by comparing the KM average scores to this new pKM "probability" variable
 ```{r}
 library(ggplot2)
-ggplot(df, aes(x = KM_Avg, y = pKM)) +
-  geom_point()
+ggplot(df, aes(x = KM_Scl, y = pKM)) +
+  geom_point() #Average KM scores of 3 middle of the scale, now zeroed, are considered 50% likely to have experienced KM.
 ```
 
 
@@ -414,9 +413,8 @@ To start, we had an Attention Check (AttCheck_1) earlier, but we also had a 2nd 
 
 ```{r}
 table(df$Vid_SelfRep, df$Cond)
-
 ```
-Luckly it appears the incorrect answers (8 of them) are spread across all three conditions, suggesting the incorrect answers are not due to a condition's video being particularly difficult/vague to identify when asked directly. We can label these for the 2nd attention check
+Luckily it appears the incorrect answers (8 of them) are spread across all three conditions, suggesting the incorrect answers are not due to a condition's video being particularly difficult/vague to identify when asked directly. We can label these for the 2nd attention check
 
 ```{r}
 df$AttCheck_2 <- ifelse(as.character(df$Vid_SelfRep) == as.character(df$Cond),
@@ -591,18 +589,6 @@ ggplot(df, aes(x = KM_Avg, y = pKM, color = Cond)) +
   geom_jitter(height = .05)
 ```
 
-
-```{r}
-ggplot(df, aes(Cond, pKM, fill = Cond)) +
-  geom_boxplot() +
-  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
-  scale_fill_viridis(discrete=TRUE, name = "Condition")+
-  labs(title = "Violin Distribution",
-       x = "",
-       y = "pKM Density")
-```
-
-
 Individual KM Aspects
 ```{r}
 p1 <- ggplot(df, aes(KM_P, group = Cond, fill = Cond)) +
@@ -667,7 +653,7 @@ p1 <- ggplot(df, aes(RNS_1, group = Cond, fill = Cond)) +
 p2 <- ggplot(df, aes(RNS_2, group = Cond, fill = Cond)) +
   geom_density(alpha = 0.6) +
   scale_fill_viridis(discrete=TRUE, name = "Condition")+
-  labs(x = "RNS Time 1",
+  labs(x = "RNS Time 2",
        y = "Density")
 
 grid.arrange(p1,p2, nrow = 2)
@@ -887,7 +873,7 @@ CNF_L <- df %>% select(id, CNF_1_Z, CNF_2_Z) %>%
 CN_L <- merge(CNS_L, CNF_L, by = c("id", "Time"))
 CN_L <- CN_L[order(CN_L$id),]
 ```
-So we've split out the repeated measures variables of df into long format. The df at this point is 352 rows long, and out individual repeated meaures are exactly twice that (for two time points)
+So we've split out the repeated measures variables of df into long format. The df at this point is 352 rows long, and our individual repeated measures are exactly twice that (for two time points)
 
 ```{r}
 nrow(AN_L) == nrow(RN_L)
@@ -952,7 +938,7 @@ fit_M <- brm(mvbind(pKM_Z, PosAff_Z) ~ Cond,
 #that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
 
-#### Plotting our model diagnostics
+#### Plotting model diagnostics
 ```{r}
 library(bayesplot)
 posterior <- as.array(fit_M)
@@ -960,23 +946,38 @@ dimnames(posterior)
 
 color_scheme_set("viridis")
 
-## Chain Mixing Plots
+## Autocorrelation Plots
+```
+
+##### Chain Mixing Plots
+```{r}
 mcmc_trace(posterior,pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept"),
            facet_args = list(ncol = 1))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("b_pKMZ_CondAmuse","b_pKMZ_CondKM", "b_PosAffZ_CondAmuse", "b_PosAffZ_CondKM"),
            facet_args = list(ncol = 2))
+```
 
+```{r}
 mcmc_trace(posterior,pars = c("sigma_pKMZ","sigma_PosAffZ"),
            facet_args = list(ncol = 1))
+```
 
-## Autocorrelation Plots
+##### Autocorrelation Plots
+```{r}
 mcmc_acf(posterior,pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("b_pKMZ_CondAmuse","b_pKMZ_CondKM", "b_PosAffZ_CondAmuse", "b_PosAffZ_CondKM"))
+```
 
+```{r}
 mcmc_acf(posterior,pars = c("sigma_pKMZ","sigma_PosAffZ"))
 ```
+
 
 #### Summaries of the Model
 ```{r}
@@ -990,7 +991,7 @@ describe_posterior(fit_M)
 ```
 
 From Vehtari, Gelman, Simpson, Carpenter, Burkner (2019), we know that convergence of the MCs is not necessarily the same across the entire parameter space. Our chain plots show convergence visually, but we can also evaluate convergence in terms of how much stable sampling we were able to achieve in both the "main" part of the distribution and at the outer (typically less stable) ends.
-"Bulk_ESS" is the term Bayesians have previously called "Effective Sample Size." It means the number of effective, i.e. independent, samples in the center of the poterior distribution (i.e. make up the "bulk" of the posterior). "Tail_ESS" is consequently about the tails of that distribution, allowing us to see how many effective samples are in the outer sides of the distribution. Put together, we can get a clearer picture of parameter stability across the distribution. 
+"Bulk_ESS" is the term Bayesians have previously called "Effective Sample Size." It means the number of effective, i.e. independent, samples in the center of the poterior distribution (i.e. make up the "bulk" of the posterior). "Tail_ESS" is consequently about the tails of that distribution (5%-95% quantiles), allowing us to see how many effective samples are in the outer sides of the distribution. Put together, we can get a clearer picture of parameter stability across the distribution. 
 
 #### Plotting Model Posteriors
 ```{r}
