@@ -414,6 +414,7 @@ To start, we had an Attention Check (AttCheck_1) earlier, but we also had a 2nd 
 
 ```{r}
 table(df$Vid_SelfRep, df$Cond)
+
 ```
 Luckly it appears the incorrect answers (8 of them) are spread across all three conditions, suggesting the incorrect answers are not due to a condition's video being particularly difficult/vague to identify when asked directly. We can label these for the 2nd attention check
 
@@ -582,8 +583,25 @@ ggplot(df, aes(Cond, pKM, fill = Cond)) +
   scale_fill_viridis(discrete=TRUE, name = "Condition")+
   labs(title = "Violin Distribution",
        x = "",
-       y = "Density")
+       y = "pKM")
 ```
+
+```{r}
+ggplot(df, aes(x = KM_Avg, y = pKM, color = Cond)) +
+  geom_jitter(height = .05)
+```
+
+
+```{r}
+ggplot(df, aes(Cond, pKM, fill = Cond)) +
+  geom_boxplot() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Violin Distribution",
+       x = "",
+       y = "pKM Density")
+```
+
 
 Individual KM Aspects
 ```{r}
@@ -766,6 +784,12 @@ df_cor <- df %>%
   select(pKM, KM_P, KM_CSR, KM_L, KM_M)
 rcorr(as.matrix(df_cor))
 ```
+```{r}
+df_cor <- df %>%
+  select(ANF_1, ANF_2, KM_M)
+rcorr(as.matrix(df_cor))
+```
+
 ARC Needs
 ```{r}
 df_cor <- df %>%
