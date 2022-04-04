@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 First, loading in helpful the packages
-```{r eval=FALSE}
+```{r}
 library(dplyr)
 library(tidyverse)
 library(readr)
@@ -1321,40 +1321,6 @@ The effect of KM condition is mostly wiped out with Frustration, though some une
 
 ## Summary of Results
 
-### Visualizing
-```{r}
-library(diagram)
-data <- c(0, "'.47*'", 0,
-          0, 0, 0, 
-          "'.36*'", "'.33* (.16)'", 0)
-M<- matrix (nrow=3, ncol=3, byrow = TRUE, data=data)
-plot<- plotmat (M, pos=c(1,2), 
-                name= c( "Math self-efficacy","Math ability", "Interest in the math major"), 
-                box.type = "rect", box.size = 0.12, box.prop=0.5,  curve=0)
-```
-
-```{r}
-library(diagram)
-names <- c("pKM", "D1", "Sat", "D2", "Frus", "PA")
-M <- matrix(nrow = 6, ncol = 6, byrow = T,
-            data = c(0, "A", 0, "B", 0, 0,
-                     0,  0,  0,  0,  0, 0,
-                     "I","E",0, "F", 0, "K",
-                     0,  0,  0,  0,  0,  0,
-                     "J","G",0, "H", 0, "L",
-                     0, "C", 0, "D", 0, 0),
-            dimnames = list(c("pKM", "D1", "Sat", "D2", "Frust", "PA"), 
-                            c("pKM", "D1", "Sat", "D2", "Frust", "PA")))
-
-plotmat(M, pos = c(1,2,2,1), relsize = 1.08,
-        curve = 0, name = names,
-        cex.txt = .8,
-        lwd = 1, box.lwd = 2,
-        box.type = "square", box.size = 0.07, box.prop = .5)
-
-
-```
-
 ANS by pKM
 ```{r}
 ggMarginal(
@@ -1473,3 +1439,93 @@ Similar to autonomy, we see a divergence in PA and KM effects. PA is functioning
 ##### CNS #####
 The Neutral condition had little to no  effect on CNS scores. The Amusement condition had little to no effect on CNS. The KM condition had little to no effect on CNS, though perhaps negative effect (wide CI, crossing zero still). PA had a positive effect on CNS, such that higher PA was associated with higher CNS (CI well outside ROPE). KM had a near-zero, negative effect on CNS such that higher KM was associated with lower CNS (estimate negative, but wide CI crossing zero and almost entirely encompassing ROPE).
 Again, PA is functioning as theoretically expected. "PA-less" KM has a very noisy effect here, such that any conclusions in one way or the other is hard. If anything, we'd say KM reduces competency satisfaction--which is line with the aforementioned anthropological theorizing of KM in terms of social promotion and community we see in CNF--however these numbers are too messy for me to be confident.
+
+##### Summaries, Visualizations, Write-Up Materials
+### Exclusions
+```{r}
+missing_table
+```
+
+### Descriptives
+
+```{r}
+nrow(df)
+```
+
+```{r}
+df %>% select(
+  Gender, Age, Race, Education, Employed, Income, SexualOr) %>% 
+  summary()
+```
+#### Age
+```{r}
+sd(df$Age)
+```
+#### Race
+```{r}
+table(df$Race)
+```
+
+#### Sexual Orientation
+```{r}
+table(df$SexualOr)
+```
+
+#### Student Status
+```{r}
+table(df$Student)
+```
+### Visualizations for Write-Up
+```{r}
+### Visualizing
+library(diagram)
+names <- c("X", "Y")
+M <- matrix(nrow = 2, ncol = 2, byrow = T,
+            data = c(0, 0,
+                     "c", 0),
+            dimnames = list(names, 
+                           names))
+
+plotmat(M, pos = c(2), relsize = 1.08,
+        curve = 0, name = names,
+        cex.txt = 1,
+        lwd = 1, box.lwd = 2,
+        box.type = "square", box.size = 0.07, box.prop = .5)
+
+names <- c("M","X", "Y")
+M <- matrix(nrow = 3, ncol = 3, byrow = T,
+            data = c(0, "a", 0,
+                     0, 0, 0,
+                     "b", "c", 0),
+            dimnames = list(names, 
+                           names))
+
+plotmat(M, pos = c(1,2), relsize = 1.08,
+        curve = 0, name = names,
+        cex.txt = 1,
+        lwd = 1, box.lwd = 2,
+        box.type = "square", box.size = 0.07, box.prop = .5)
+
+```
+
+```{r}
+library(diagram)
+names <- c("pKM", "D1", "Sat", "D2", "Frus", "PA")
+M <- matrix(nrow = 6, ncol = 6, byrow = T,
+            data = c(0, "A", 0, "B", 0, 0,
+                     0,  0,  0,  0,  0, 0,
+                     "I","E",0, "F", 0, "K",
+                     0,  0,  0,  0,  0,  0,
+                     "J","G",0, "H", 0, "L",
+                     0, "C", 0, "D", 0, 0),
+            dimnames = list(c("pKM", "D1", "Sat", "D2", "Frust", "PA"), 
+                            c("pKM", "D1", "Sat", "D2", "Frust", "PA")))
+
+plotmat(M, pos = c(1,2,2,1), relsize = 1.08,
+        curve = 0, name = names,
+        cex.txt = .8,
+        lwd = 1, box.lwd = 2,
+        box.type = "square", box.size = 0.07, box.prop = .5)
+
+
+```
