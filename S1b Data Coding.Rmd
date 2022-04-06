@@ -1529,3 +1529,11 @@ plotmat(M, pos = c(1,2,2,1), relsize = 1.08,
 
 
 ```
+A Basic Sigmoid Function
+```{r}
+plot(
+  x = seq(-3,3,.01),
+  y = 1/(1+(exp(1)^-(seq(-3,3,.01))))
+)
+```
+
