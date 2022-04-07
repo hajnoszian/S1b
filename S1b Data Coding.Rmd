@@ -1533,7 +1533,10 @@ A Basic Sigmoid Function
 ```{r}
 plot(
   x = seq(-3,3,.01),
-  y = 1/(1+(exp(1)^-(seq(-3,3,.01))))
+  y = 1/(1+(exp(1)^-(seq(-3,3,.01)))),
+  xlim = c(-3,3),
+  xlab = "Range of -3 to +3",
+  ylab = "Probability"
 )
 ```
 
