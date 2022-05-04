@@ -982,6 +982,7 @@ mcmc_acf(posterior,pars = c("sigma_pKMZ","sigma_PosAffZ"))
 #### Summaries of the Model
 ```{r}
 summary(fit_M)
+print(summary(fit_M), digits = 3) #to see more decimal places,particularly helpful for the Rhat stats
 ```
 Remember, all of these effects are the **medians** of their respective distributions.
 
@@ -1030,6 +1031,7 @@ Trying to see direct ROPE numbers
 ```{r}
 describe_posterior(fit_M) #note, multivariate is not supported yet with the ROPE function in BayestestR
 ```
+
 Looks like we won't be able to see direct ROPE metrics using these multivariate models yet. Can still evaluate the main benchmark (does the CI cross +/- .05 or not) from the posterior estimates and CI, but won't be able to measure specific percentage this way.
 
 
@@ -1109,6 +1111,7 @@ mcmc_acf(posterior,pars = c("sigma_ANSZ","sigma_ANFZ"))
 #### Summaries of the Model
 ```{r}
 summary(fit_A)
+print(summary(fit_A), digits = 3)
 ```
 Remember, all of these effects are the **medians** of their respective distributions.
 
@@ -1218,6 +1221,7 @@ mcmc_acf(posterior,pars = c("sigma_RNSZ","sigma_RNFZ"))
 #### Summaries of the Model ####
 ```{r}
 summary(fit_R)
+print(summary(fit_R), digits = 3)
 ```
 
 ```{r}
@@ -1308,6 +1312,7 @@ mcmc_acf(posterior,pars = c("sigma_CNSZ","sigma_CNFZ"))
 #### Summaries of the Model
 ```{r}
 summary(fit_C)
+print(summary(fit_C), digits = 3)
 ```
 
 ```{r}
