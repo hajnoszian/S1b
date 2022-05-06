@@ -579,14 +579,27 @@ ggplot(df, aes(Cond, pKM, fill = Cond)) +
   geom_violin() +
   geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
   scale_fill_viridis(discrete=TRUE, name = "Condition")+
-  labs(title = "Violin Distribution",
+  labs(title = "Violin Distribution of Kama Muta Experience",
        x = "",
        y = "pKM")
 ```
+```{r}
+ggplot(df, aes(Cond, PosAff, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Violin Distribution of Positive Affect",
+       x = "",
+       y = "Positive Affect")
+```
+
 
 ```{r}
 ggplot(df, aes(x = KM_Avg, y = pKM, color = Cond)) +
-  geom_jitter(height = .05)
+  geom_jitter(height = .05) +
+  labs(x = "Average Response on KAMMUS Two",
+       y = "Probability of Kama Muta Experience",
+       color = "Condition")
 ```
 
 Individual KM Aspects
