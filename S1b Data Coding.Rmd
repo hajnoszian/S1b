@@ -22,6 +22,7 @@ library(brms)
 library(qgraph)
 library(bayestestR)
 library(ggExtra)
+library(Hmisc)
 options(mc.cores = parallel::detectCores())
 ```
 ## Data Entry & Cleaning
@@ -776,6 +777,14 @@ df_cor <- df %>%
   select(Age, EC, Attach_avd, Attach_anx, pKM, PosAff)
 rcorr(as.matrix(df_cor))
 ```
+More descriptive variables 
+```{r}
+df_cor <- df %>%
+  select(KM_P, KM_CSR, KM_M, PosAff, KM_L, EC, Gender, Age)
+df_cor$Gender <- as.numeric(df_cor$Gender)-1 #just to keep as 0,1 coding rather than 1,2
+rcorr(as.matrix(df_cor))
+```
+
 Now to outcome variables
 KM
 ```{r}
