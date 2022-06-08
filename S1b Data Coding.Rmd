@@ -919,6 +919,7 @@ df_L <- df %>%
 
 df_L <- merge(df, N_L, by = c("id"))
 df_L <- df_L[order(df_L$id),]
+df_L$Time
 ```
 
 
@@ -1565,5 +1566,62 @@ plot(
   xlab = "Range of -3 to +3",
   ylab = "Probability"
 )
+```
+
+
+```{r}
+get_prior(RNS_2_Z ~ Cond + PosAff_Z + pKM_Z + RNS_1_Z,
+    data = df)
+```
+
+### Extraneous
+
+To Compare with Sarah's frequentist doublecheck: We'll focus on RNS as our example for simplicity
+
+Trying out as covariate model (not as multilevel) with priors
+```{r}
+fit_RNS2 <- brm(RNS_2_Z ~ Cond + PosAff_Z + pKM_Z + RNS_1_Z,
+    data = df,
+    prior = c(
+      set_prior("normal(.09,.03)", class = "b", coef = "pKM_Z"),
+      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse"),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM"),
+      set_prior("normal(0,2)", class = "Intercept")
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+describe_posterior(fit_RNS2)
+```
+
+Covariate model without priors, i.e. basically frequentist
+```{r}
+fit_RNS2 <- brm(RNS_2_Z ~ Cond + PosAff_Z + pKM_Z + RNS_1_Z,
+    data = df,
+    warmup = 5000, iter = 10000, chains = 4)
+
+describe_posterior(fit_RNS2)
+```
+Ok, this "frequentist/no prior bayes" is exactly what Sarah's frequentist SPSS output was. Which is good.
+Looks like the priors are doing their job--giving narrower CIs and influencing our ultimate estimates based on prev info (priors actually do the thing! Cool to directly see) 
+
+What about a multilevel model version, with no priors?
+```{r}
+fit_RNS2 <- brm(RNS_Z ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+    data = df_L,
+    warmup = 5000, iter = 10000, chains = 4)
+
+describe_posterior(fit_RNS2)
+```
+Multilevel without priors seems far more like what I currently consider my final output. Effect estimates themselves are all about the same, but without priors (as done here) the CIs are wider. AGAIN Priors seem to do what they're supposed to do! (very cool)
+
+
+```{r}
+summary(lm(RNS_Z ~ Time, data = df_L))
+```
+
+Looks fine to me that time is character in the df, since time should be a categorical variable anyway, and operates the same as if it was a factor with 2 levels when put into a regression. I.e. the time variable shouldnt be introducing problems to the models as currently organized.
+```{r}
+as.factor(df_L$Time)
+summary(lm(RNS_Z ~ as.factor(Time), data = df_L))
 ```
 
