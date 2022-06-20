@@ -1063,12 +1063,17 @@ We'll start with autonomy. We're again using multivariate functions here to map 
 
 #### Fitting our model
 ```{r}
-get_prior(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+get_prior(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + Cond*Time (1|p|id),
     data = df_L)
 ```
 
 ```{r}
-fit_A <- brm(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+get_prior(mvbind(ANS_Z, ANF_Z) ~ Cond*Time + PosAff_Z + pKM_Z + (1|p|id),
+    data = df_L)
+```
+
+```{r}
+fit_A1 <- brm(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
     data = df_L,
     prior = c(
       set_prior("normal(0,2)", class = "b", coef = "pKM_Z", resp = c("ANSZ", "ANFZ")),
@@ -1082,7 +1087,23 @@ fit_A <- brm(mvbind(ANS_Z, ANF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
 
 #that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
+```{r}
+fit_A <- brm(mvbind(ANS_Z, ANF_Z) ~ Cond*Time + PosAff_Z + pKM_Z + (1|p|id),
+    data = df_L,
+    prior = c(
+      set_prior("normal(0,2)", class = "b", coef = "pKM_Z", resp = c("ANSZ", "ANFZ")),
+      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z", resp = "ANSZ"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z", resp = "ANFZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse:Time2", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM:Time2", resp = c("ANSZ","ANFZ")),
+      set_prior("normal(0,2)", class = "Intercept", resp = c("ANSZ", "ANFZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
 
+#that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
+```
 
 #### Plotting our model diagnostics
 ```{r}
@@ -1109,6 +1130,18 @@ mcmc_trace(posterior,pars = c("b_ANFZ_CondAmuse","b_ANFZ_CondKM", "b_ANFZ_PosAff
 ```
 
 ```{r}
+mcmc_trace(posterior,pars = c("b_ANSZ_CondKM:Time2", "b_ANSZ_CondAmuse:Time2"),
+           facet_args = list(ncol = 1))
+```
+
+
+```{r}
+mcmc_trace(posterior,pars = c("b_ANFZ_CondKM:Time2", "b_ANFZ_CondAmuse:Time2"),
+           facet_args = list(ncol = 1))
+```
+
+
+```{r}
 mcmc_trace(posterior,pars = c("sigma_ANSZ","sigma_ANFZ"),
            facet_args = list(ncol = 1))
 ```
@@ -1125,6 +1158,11 @@ mcmc_acf(posterior,pars = c("b_ANSZ_CondAmuse","b_ANSZ_CondKM", "b_ANSZ_PosAff_Z
 ```{r}
 mcmc_acf(posterior,pars = c("b_ANFZ_CondAmuse","b_ANFZ_CondKM", "b_ANFZ_PosAff_Z", "b_ANFZ_pKM_Z"))
 ```
+
+```{r}
+mcmc_acf(posterior,pars = c("b_ANFZ_CondKM:Time2", "b_ANFZ_CondAmuse:Time2"))
+```
+
 
 ```{r}
 mcmc_acf(posterior,pars = c("sigma_ANSZ","sigma_ANFZ"))
@@ -1172,12 +1210,12 @@ Nope, formula inclusion order does not seem to matter--effects are all turning o
 
 #### Fitting our model
 ```{r}
-get_prior(mvbind(RNS_Z, RNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+get_prior(mvbind(RNS_Z, RNF_Z) ~ Cond*Time + PosAff_Z + pKM_Z + (1|p|id),
     data = df_L)
 ```
 
 ```{r}
-fit_R <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+fit_R1 <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
     data = df_L,
     prior = c(
       set_prior("normal(.09,.03)", class = "b", coef = "pKM_Z", resp = "RNSZ"),
@@ -1186,6 +1224,25 @@ fit_R <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
       set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z", resp = "RNFZ"),
       set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("RNSZ","RNFZ")),
       set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "Intercept", resp = c("RNSZ", "RNFZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+
+#that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
+```
+
+```{r}
+fit_R <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond*Time + PosAff_Z + pKM_Z + (1|p|id),
+    data = df_L,
+    prior = c(
+      set_prior("normal(.09,.03)", class = "b", coef = "pKM_Z", resp = "RNSZ"),
+      set_prior("normal(-.05,.02)", class = "b", coef = "pKM_Z", resp = "RNFZ"),
+      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z", resp = "RNSZ"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z", resp = "RNFZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse:Time2", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM:Time2", resp = c("RNSZ","RNFZ")),
       set_prior("normal(0,2)", class = "Intercept", resp = c("RNSZ", "RNFZ"))
     ),
     warmup = 5000, iter = 10000, chains = 4)
@@ -1219,6 +1276,17 @@ mcmc_trace(posterior,pars = c("b_RNFZ_CondAmuse","b_RNFZ_CondKM", "b_RNFZ_PosAff
 ```
 
 ```{r}
+mcmc_trace(posterior,pars = c("b_RNSZ_CondKM:Time2", "b_RNSZ_CondAmuse:Time2"),
+           facet_args = list(ncol = 1))
+```
+
+```{r}
+mcmc_trace(posterior,pars = c("b_RNFZ_CondKM:Time2", "b_RNFZ_CondAmuse:Time2"),
+           facet_args = list(ncol = 1))
+```
+
+
+```{r}
 mcmc_trace(posterior,pars = c("sigma_RNSZ","sigma_RNFZ"),
            facet_args = list(ncol = 1))
 ```
@@ -1234,6 +1302,14 @@ mcmc_acf(posterior,pars = c("b_RNSZ_CondAmuse","b_RNSZ_CondKM", "b_RNSZ_PosAff_Z
 
 ```{r}
 mcmc_acf(posterior,pars = c("b_RNFZ_CondAmuse","b_RNFZ_CondKM", "b_RNFZ_PosAff_Z", "b_RNFZ_pKM_Z"))
+```
+
+```{r}
+mcmc_acf(posterior,pars = c("b_RNSZ_CondKM:Time2", "b_RNSZ_CondAmuse:Time2"))
+```
+
+```{r}
+mcmc_acf(posterior,pars = c("b_RNFZ_CondKM:Time2", "b_RNFZ_CondAmuse:Time2"))
 ```
 
 ```{r}
@@ -1267,7 +1343,7 @@ get_prior(mvbind(CNS_Z, CNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
 ```
 
 ```{r}
-fit_C <- brm(mvbind(CNS_Z, CNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+fit_C1 <- brm(mvbind(CNS_Z, CNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
     data = df_L,
     prior = c(
       set_prior("normal(0,2)", class = "b", coef = "pKM_Z", resp = "CNSZ"),
@@ -1283,6 +1359,25 @@ fit_C <- brm(mvbind(CNS_Z, CNF_Z) ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
 #that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
 ```
 
+
+```{r}
+fit_C <- brm(mvbind(CNS_Z, CNF_Z) ~ Cond*Time + PosAff_Z + pKM_Z + (1|p|id),
+    data = df_L,
+    prior = c(
+      set_prior("normal(0,2)", class = "b", coef = "pKM_Z", resp = "CNSZ"),
+      set_prior("normal(0,2)", class = "b", coef = "pKM_Z", resp = "CNFZ"),
+      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z", resp = "CNSZ"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z", resp = "CNFZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("CNSZ","CNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("CNSZ","CNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse:Time2", resp = c("CNSZ","CNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM:Time2", resp = c("CNSZ","CNFZ")),
+      set_prior("normal(0,2)", class = "Intercept", resp = c("CNSZ", "CNFZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+
+#that "-E" warning is not important--it's a misconfiguration on the developer side (see Stan Forum)
+```
 #### Plotting our model diagnostics
 ```{r}
 library(bayesplot)
@@ -1310,6 +1405,16 @@ mcmc_trace(posterior,pars = c("b_CNFZ_CondAmuse","b_CNFZ_CondKM", "b_CNFZ_PosAff
 ```
 
 ```{r}
+mcmc_trace(posterior,pars = c("b_CNSZ_CondKM:Time2", "b_CNSZ_CondAmuse:Time2"),
+           facet_args = list(ncol = 1))
+```
+
+```{r}
+mcmc_trace(posterior,pars = c("b_CNFZ_CondKM:Time2", "b_CNFZ_CondAmuse:Time2"),
+           facet_args = list(ncol = 1))
+```
+
+```{r}
 mcmc_trace(posterior,pars = c("sigma_CNSZ","sigma_CNFZ"),
            facet_args = list(ncol = 1))
 ```
@@ -1326,6 +1431,14 @@ mcmc_acf(posterior,pars = c("b_CNSZ_CondAmuse","b_CNSZ_CondKM", "b_CNSZ_PosAff_Z
 
 ```{r}
 mcmc_acf(posterior,pars = c("b_CNFZ_CondAmuse","b_CNFZ_CondKM", "b_CNFZ_PosAff_Z", "b_CNFZ_pKM_Z"))
+```
+
+```{r}
+mcmc_acf(posterior,pars = c("b_CNSZ_CondKM:Time2", "b_CNSZ_CondAmuse:Time2"))
+```
+
+```{r}
+mcmc_acf(posterior,pars = c("b_CNFZ_CondKM:Time2", "b_CNFZ_CondAmuse:Time2"))
 ```
 
 ```{r}
@@ -1606,7 +1719,7 @@ Looks like the priors are doing their job--giving narrower CIs and influencing o
 
 What about a multilevel model version, with no priors?
 ```{r}
-fit_RNS2 <- brm(RNS_Z ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+fit_RNS2 <- brm(RNS_Z ~ Cond + PosAff_Z + pKM_Z + Time + (1|id),
     data = df_L,
     warmup = 5000, iter = 10000, chains = 4)
 
@@ -1614,6 +1727,24 @@ describe_posterior(fit_RNS2)
 ```
 Multilevel without priors seems far more like what I currently consider my final output. Effect estimates themselves are all about the same, but without priors (as done here) the CIs are wider. AGAIN Priors seem to do what they're supposed to do! (very cool)
 
+I don't think this will change anything, but just using the |p| thing in the random intercept to check if it changes anything substantiall.
+```{r}
+fit_RNS2 <- brm(RNS_Z ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
+    data = df_L,
+    warmup = 5000, iter = 10000, chains = 4)
+
+describe_posterior(fit_RNS2)
+```
+Yeah, doesn't matter--just as expected (thank goodness)
+
+Time as interaction to check (This actually seems like the better model I should re-do with)
+```{r}
+fit_RNS2 <- brm(RNS_Z ~ Cond*Time + PosAff_Z + pKM_Z + (1|id),
+    data = df_L,
+    warmup = 5000, iter = 10000, chains = 4)
+
+describe_posterior(fit_RNS2)
+```
 
 ```{r}
 summary(lm(RNS_Z ~ Time, data = df_L))
