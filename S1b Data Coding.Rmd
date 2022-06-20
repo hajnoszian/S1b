@@ -1727,7 +1727,7 @@ describe_posterior(fit_RNS2)
 ```
 Multilevel without priors seems far more like what I currently consider my final output. Effect estimates themselves are all about the same, but without priors (as done here) the CIs are wider. AGAIN Priors seem to do what they're supposed to do! (very cool)
 
-I don't think this will change anything, but just using the |p| thing in the random intercept to check if it changes anything substantiall.
+I don't think this will change anything, but just using the |p| thing in the random intercept to check if it changes anything substantially.
 ```{r}
 fit_RNS2 <- brm(RNS_Z ~ Cond + PosAff_Z + pKM_Z + Time + (1|p|id),
     data = df_L,
