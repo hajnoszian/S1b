@@ -1160,6 +1160,10 @@ mcmc_acf(posterior,pars = c("b_ANFZ_CondAmuse","b_ANFZ_CondKM", "b_ANFZ_PosAff_Z
 ```
 
 ```{r}
+mcmc_acf(posterior,pars = c("b_ANSZ_CondKM:Time2", "b_ANSZ_CondAmuse:Time2"))
+```
+
+```{r}
 mcmc_acf(posterior,pars = c("b_ANFZ_CondKM:Time2", "b_ANFZ_CondAmuse:Time2"))
 ```
 
