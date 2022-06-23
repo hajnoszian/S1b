@@ -23,6 +23,7 @@ library(qgraph)
 library(bayestestR)
 library(ggExtra)
 library(Hmisc)
+library(bayesplot)
 options(mc.cores = parallel::detectCores())
 ```
 ## Data Entry & Cleaning
@@ -1760,3 +1761,24 @@ as.factor(df_L$Time)
 summary(lm(RNS_Z ~ as.factor(Time), data = df_L))
 ```
 
+#### SUpplemental Analyses
+Un-preregistered test of relatedness.
+
+If PA "stacks" on the unique relatedness effects of pKM, we might see that happen directly from the conditions by themselves. If the case, we'd expect to see KM condition with larger effect than amusement on rel sat.
+```{r}
+fit_R2 <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond*Time + (1|p|id),
+    data = df_L,
+    prior = c(
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse:Time2", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM:Time2", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "Intercept", resp = c("RNSZ", "RNFZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+```
+
+```{r}
+summary(fit_R2)
+```
+Ok, not that helpful since all of the effects have such wide CIs its rather suspect to make any firm conclusions tbh.
