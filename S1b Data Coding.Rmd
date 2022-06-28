@@ -1782,3 +1782,4 @@ fit_R2 <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond*Time + (1|p|id),
 summary(fit_R2)
 ```
 Ok, not that helpful since all of the effects have such wide CIs its rather suspect to make any firm conclusions tbh.
+
