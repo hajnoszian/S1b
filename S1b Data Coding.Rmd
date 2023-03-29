@@ -920,7 +920,8 @@ df_L <- df %>%
 
 df_L <- merge(df, N_L, by = c("id"))
 df_L <- df_L[order(df_L$id),]
-df_L$Time
+table(df_L$Time)
+
 ```
 
 
@@ -1783,3 +1784,101 @@ summary(fit_R2)
 ```
 Ok, not that helpful since all of the effects have such wide CIs its rather suspect to make any firm conclusions tbh.
 
+#### Interaction Only
+I think this may be the better way to go actually. It doesn't conflate time like the direct effects of KM and PA do in the original models (I think thats what they do at least)
+
+
+```{r}
+fit_Ri <- brm(mvbind(RNS_Z, RNF_Z) ~ Cond*Time + (1|p|id),
+    data = df_L,
+    prior = c(
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse:Time2", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM:Time2", resp = c("RNSZ","RNFZ")),
+      set_prior("normal(0,2)", class = "Intercept", resp = c("RNSZ", "RNFZ"))
+    ),
+    warmup = 5000, iter = 10000, chains = 4)
+
+```
+```{r}
+describe_posterior(fit_Ri)
+```
+```{r}
+lm(df$RNS_2_Z ~ df$RNS_1_Z + df$Cond + df$pKM_Z)
+```
+
+
+##### Autonomy Needs: Pivotting to Long (edit)
+```{r}
+ANS_L <- df %>% select(id, ANS_1_Z, ANS_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("AN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "ANS_Z"
+  ) %>% 
+  select(-AN)
+
+
+ANF_L <- df %>% select(id, ANF_1_Z, ANF_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("AN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "ANF_Z"
+  ) %>% 
+  select(-AN)
+  
+AN_L <- merge(ANS_L, ANF_L, by = c("id", "Time"))
+AN_L <- AN_L[order(AN_L$id),]
+
+df %>% select(id, pKM_Z) %>% 
+  left_join(AN_L, ., by = join_by("id"))
+```
+##### Relatedness Needs: Pivotting to Long
+```{r}
+RNS_L <- df %>% select(id, RNS_1_Z, RNS_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("RN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "RNS_Z"
+  ) %>% 
+  select(-RN)
+
+RNF_L <- df %>% select(id, RNF_1_Z, RNF_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("RN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "RNF_Z"
+  ) %>% 
+  select(-RN)
+  
+RN_L <- merge(RNS_L, RNF_L, by = c("id", "Time"))
+RN_L <- RN_L[order(RN_L$id),]
+```
+
+##### Competency Needs: Pivotting to Long
+```{r}
+CNS_L <- df %>% select(id, CNS_1_Z, CNS_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("CN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "CNS_Z"
+  ) %>% 
+  select(-CN)
+
+CNF_L <- df %>% select(id, CNF_1_Z, CNF_2_Z) %>% 
+  pivot_longer(
+    cols = !id,
+    names_to = c("CN", "Time"),
+    names_sep = (sep = "_"),
+    values_to = "CNF_Z"
+  ) %>% 
+  select(-CN)
+  
+CN_L <- merge(CNS_L, CNF_L, by = c("id", "Time"))
+CN_L <- CN_L[order(CN_L$id),]
