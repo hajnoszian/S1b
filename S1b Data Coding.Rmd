@@ -855,8 +855,10 @@ Using 20k iterations--ESS ideally is 10k+ (Kruschke, 2021), so we likely need mo
 fit_M <- brm(mvbind(pKM_Z, PosAff_Z) ~ Cond,
     df,
     prior = c(
-      set_prior("normal(1.4,.10)", class = "b", resp = c("pKMZ", "PosAffZ")),
-      set_prior("normal(1.4,.10)", class = "Intercept", resp = c("pKMZ", "PosAffZ"))
+      set_prior("normal(1.4,.10)", class = "b", resp = "pKMZ"),
+      set_prior("normal(0,2)", class = "b", resp = "PosAffZ"),
+      set_prior("normal(-2.1,.12)", class = "Intercept", resp = "pKMZ"),
+      set_prior("normal(0,2)", class = "Intercept", resp = "PosAffZ")
     ),
     warmup = 5000, iter = 20000, chains = 4)
 ```
@@ -875,31 +877,26 @@ color_scheme_set("viridis")
 
 ##### Chain Mixing Plots
 ```{r}
-mcmc_trace(posterior, pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept"),
-           facet_args = list(ncol = 1))
-```
-
-```{r}
-mcmc_trace(posterior,pars = c("b_pKMZ_CondAmuse","b_pKMZ_CondKM", "b_PosAffZ_CondAmuse", "b_PosAffZ_CondKM"),
+mcmc_trace(posterior, pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept",
+                               "b_pKMZ_CondAmuse","b_pKMZ_CondKM",
+                               "b_PosAffZ_CondAmuse","b_PosAffZ_CondKM",
+                               "sigma_pKMZ","sigma_PosAffZ"),
            facet_args = list(ncol = 2))
+ggsave("M_Trace_Plots.png")
 ```
 
-```{r}
-mcmc_trace(posterior,pars = c("sigma_pKMZ","sigma_PosAffZ"),
-           facet_args = list(ncol = 1))
-```
 
 ##### Autocorrelation Plots
 ```{r}
-mcmc_acf(posterior,pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept"))
+mcmc_acf(posterior,pars = c("b_pKMZ_Intercept","b_PosAffZ_Intercept",
+                               "b_pKMZ_CondAmuse","b_pKMZ_CondKM",
+                               "b_PosAffZ_CondAmuse","b_PosAffZ_CondKM",
+                               "sigma_pKMZ","sigma_PosAffZ"))
+ggsave("M_Autorcor_Plots.png")
 ```
 
 ```{r}
 mcmc_acf(posterior,pars = c("b_pKMZ_CondAmuse","b_pKMZ_CondKM", "b_PosAffZ_CondAmuse", "b_PosAffZ_CondKM"))
-```
-
-```{r}
-mcmc_acf(posterior,pars = c("sigma_pKMZ","sigma_PosAffZ"))
 ```
 
 
@@ -997,12 +994,14 @@ color_scheme_set("viridis")
 ```{r}
 mcmc_trace(posterior,pars = c("b_Intercept", "b_ANS_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"),
            facet_args = list(ncol = 3))
+ggsave("AS_Trace_Plots.png")
 ```
 
 
 ##### Autocorrelation Plots
 ```{r}
 mcmc_acf(posterior,pars = c("b_Intercept", "b_ANS_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"))
+ggsave("AS_Autocor_Plots.png")
 ```
 
 #### Summaries of the Model
@@ -1053,12 +1052,14 @@ color_scheme_set("viridis")
 ```{r}
 mcmc_trace(posterior,pars = c("b_Intercept", "b_ANF_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"),
            facet_args = list(ncol = 3))
+ggsave("AF_Trace_Plots.png")
 ```
 
 
 ##### Autocorrelation Plots
 ```{r}
 mcmc_acf(posterior,pars = c("b_Intercept", "b_ANF_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"))
+ggsave("AF_Autocor_Plots.png")
 ```
 
 #### Summaries of the Model
@@ -1112,12 +1113,14 @@ color_scheme_set("viridis")
 ```{r}
 mcmc_trace(posterior,pars = c("b_Intercept", "b_RNS_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"),
            facet_args = list(ncol = 3))
+ggsave("RS_Trace_Plots.png")
 ```
 
 
 ##### Autocorrelation Plots
 ```{r}
 mcmc_acf(posterior,pars = c("b_Intercept", "b_RNS_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"))
+ggsave("RS_Autocor_Plots.png")
 ```
 
 #### Summaries of the Model
@@ -1169,12 +1172,14 @@ color_scheme_set("viridis")
 ```{r}
 mcmc_trace(posterior,pars = c("b_Intercept", "b_RNF_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"),
            facet_args = list(ncol = 3))
+ggsave("RF_Trace_Plots.png")
 ```
 
 
 ##### Autocorrelation Plots
 ```{r}
 mcmc_acf(posterior,pars = c("b_Intercept", "b_RNF_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"))
+ggsave("RF_Autocor_Plots.png")
 ```
 
 #### Summaries of the Model
@@ -1228,12 +1233,14 @@ color_scheme_set("viridis")
 ```{r}
 mcmc_trace(posterior,pars = c("b_Intercept", "b_CNS_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"),
            facet_args = list(ncol = 3))
+ggsave("CS_Trace_Plots.png")
 ```
 
 
 ##### Autocorrelation Plots
 ```{r}
 mcmc_acf(posterior,pars = c("b_Intercept", "b_CNS_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"))
+ggsave("CS_Autocor_Plots.png")
 ```
 
 #### Summaries of the Model
@@ -1284,12 +1291,14 @@ color_scheme_set("viridis")
 ```{r}
 mcmc_trace(posterior,pars = c("b_Intercept", "b_CNF_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"),
            facet_args = list(ncol = 3))
+ggsave("CF_Trace_Plots.png")
 ```
 
 
 ##### Autocorrelation Plots
 ```{r}
 mcmc_acf(posterior,pars = c("b_Intercept", "b_CNF_1_Z", "b_CondAmuse","b_CondKM", "b_PosAff_Z", "b_pKM_Z", "sigma"))
+ggsave("CF_Autocor_Plots.png")
 ```
 
 #### Summaries of the Model
