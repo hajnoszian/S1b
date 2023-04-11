@@ -855,10 +855,12 @@ Using 20k iterations--ESS ideally is 10k+ (Kruschke, 2021), so we likely need mo
 fit_M <- brm(mvbind(pKM_Z, PosAff_Z) ~ Cond,
     df,
     prior = c(
-      set_prior("normal(1.4,.10)", class = "b", resp = "pKMZ"),
-      set_prior("normal(0,2)", class = "b", resp = "PosAffZ"),
       set_prior("normal(-2.1,.12)", class = "Intercept", resp = "pKMZ"),
-      set_prior("normal(0,2)", class = "Intercept", resp = "PosAffZ")
+      set_prior("normal(1.4,.10)", class = "b", coef = "CondKM", resp = "pKMZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = "pKMZ"),
+      set_prior("normal(0,2)", class = "Intercept", resp = "PosAffZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM", resp = "PosAffZ"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse", resp = "PosAffZ")
     ),
     warmup = 5000, iter = 20000, chains = 4)
 ```
