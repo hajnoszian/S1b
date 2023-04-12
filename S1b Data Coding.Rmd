@@ -25,6 +25,7 @@ library(ggExtra)
 library(Hmisc)
 library(bayesplot)
 options(mc.cores = parallel::detectCores())
+set.seed(123)
 ```
 ## Data Entry & Cleaning
 
@@ -586,13 +587,14 @@ ggplot(df, aes(Cond, pKM, fill = Cond)) +
        y = "pKM")
 ```
 ```{r}
-ggplot(df, aes(Cond, PosAff, fill = Cond)) +
+ggplot(df, aes(Cond, PosAff_Z, fill = Cond)) +
   geom_violin() +
   geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
   scale_fill_viridis(discrete=TRUE, name = "Condition")+
   labs(title = "Violin Distribution of Positive Affect",
        x = "",
-       y = "Positive Affect")
+       y = "Positive Affect (Standardized)")
+ggsave("PA_Group.png")
 ```
 
 
@@ -641,6 +643,57 @@ ggplot(df, aes(PosAff, group = Cond, fill = Cond)) +
   labs(x = "Positive Affect",
        y = "Density")
 ```
+
+```{r}
+p1 <- ggplot(df, aes(Cond, ANS_1, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Time 1 Autonomy Satisfaction",
+       x = "",
+       y = "")
+
+p2 <- ggplot(df, aes(Cond, ANF_1, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Time 1 Autonomy Frustration",
+       x = "",
+       y = "")
+p3 <- ggplot(df, aes(Cond, RNS_1, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Time 1 Relatedness Satisfaction",
+       x = "",
+       y = "")
+
+p4 <- ggplot(df, aes(Cond, RNF_1, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Time 1 Relatedness Frustration",
+       x = "",
+       y = "")
+p5 <- ggplot(df, aes(Cond, CNS_1, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Time 1 Competence Satisfaction",
+       x = "",
+       y = "")
+p6 <- ggplot(df, aes(Cond, CNF_1, fill = Cond)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Condition")+
+  labs(title = "Time 1 Competence Frustration",
+       x = "",
+       y = "")
+
+grid.arrange(p1,p2,p3,p4,p5,p6, nrow = 3)
+ggsave("Time 1 By Condition.png")
+```
+
 
 ```{r}
 p1 <- ggplot(df, aes(ANS_1, group = Cond, fill = Cond)) +
@@ -917,6 +970,31 @@ describe_posterior(fit_M)
 From Vehtari, Gelman, Simpson, Carpenter, Burkner (2019), we know that convergence of the MCs is not necessarily the same across the entire parameter space. Our chain plots show convergence visually, but we can also evaluate convergence in terms of how much stable sampling we were able to achieve in both the "main" part of the distribution and at the outer (typically less stable) ends.
 "Bulk_ESS" is the term Bayesians have previously called "Effective Sample Size." It means the number of effective, i.e. independent, samples in the center of the poterior distribution (i.e. make up the "bulk" of the posterior). "Tail_ESS" is consequently about the tails of that distribution (5%-95% quantiles), allowing us to see how many effective samples are in the outer sides of the distribution. Put together, we can get a clearer picture of parameter stability across the distribution. 
 
+Just to show that mvind is basically just smashing two models at once, then doing a correlation between the dvs. In this sense, it's not reaaally multivariate in that it's just doing two at once, but doesn't really change the actual estimation method itself (true multivariate)
+```{r}
+get_prior(pKM_Z ~ Cond,
+    data = df)
+
+fit_m1 <- brm(pKM_Z ~ Cond,
+    df,
+    prior = c(
+      set_prior("normal(-2.1,.12)", class = "Intercept"),
+      set_prior("normal(1.4,.10)", class = "b", coef = "CondKM"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse")
+    ),
+    warmup = 5000, iter = 20000, chains = 4)
+  
+fit_m2 <- brm(PosAff_Z ~ Cond,
+    df,
+    prior = c(
+      set_prior("normal(0,2)", class = "Intercept"),
+      set_prior("normal(0,2)", class = "b", coef = "CondKM"),
+      set_prior("normal(0,2)", class = "b", coef = "CondAmuse")
+    ),
+    warmup = 5000, iter = 20000, chains = 4)
+```
+
+
 #### Plotting Model Posteriors
 ```{r}
 mcmc_areas(
@@ -965,7 +1043,6 @@ Looks like we won't be able to see direct ROPE metrics using these multivariate 
 ```{r}
 get_prior(ANS_2_Z ~ ANS_1_Z + Cond + PosAff_Z + pKM_Z,
           data = df)
-
 ```
 
 ```{r}
