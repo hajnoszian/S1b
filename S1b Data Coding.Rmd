@@ -865,13 +865,24 @@ rcorr(as.matrix(df_cor))
 
 
 An optional, Bayesian framing of the correlation table
+
+```{r}
+library(correlation)
+library(BayesFactor)
+
+correlation(df[, 
+               c('KM_P', 'KM_CSR', 'KM_M', 'KM_L', 'PosAff', 'EC', 'Age')],
+            bayesian = T) #can't add gender in here since ordinal var
+```
+
 ```{r}
 library(correlation)
 library(BayesFactor)
 correlation(df[, 
                c('Age', 'EC', 'Attach_avd', 'Attach_anx',
                  'ANS_1', 'ANF_1', 'RNS_1', 'RNS_1', 'CNS_1','CNF_1',
-                 'ANS_2', 'ANF_2', 'RNS_2', 'RNS_2', 'CNS_2','CNF_2')],
+                 'ANS_2', 'ANF_2', 'RNS_2', 'RNS_2', 'CNS_2','CNF_2',
+                 'pKM','PosAff')],
             bayesian = T)
 ```
 
@@ -879,17 +890,325 @@ correlation(df[,
 ## Bayesian Estimation Models
 
 
-```{r eval=FALSE, warning=FALSE}
-library(bmlm)
+Trying again, but with BSEM so that we can specify the exact indirect effects we want. Note: (B)Lavaan needs the exogenous categorical variables as dummy vars--it won't automatically apply dummy coding like lm() functions do
+
+```{r}
+#model.matrix(~df$Cond + 0)
+#model.matrix(~df$Cond + 0)[,2:3]
+#model.matrix(~df$Cond + 0)[,2] #Amuse
+#model.matrix(~df$Cond + 0)[,3] #KM
+
+df$CondAmuse <-  model.matrix(~df$Cond + 0)[,2]
+df$CondKM <- model.matrix(~df$Cond + 0)[,3]
+
+#we could specify the CondCont, but that is the intercept when using dummy coding, which is specified in the intercept section of the model (see below), so no need for that here
+```
+
+
+Just to make sure there isn't anything crazy going on, I made these models piecemeal, one need group at a time. This way I can compare to my original lm() based models to see if I have any major discrepancy issues (which would signal to me a likely coding error/mistake). Also, this can help me learn how these individual models compare to the overall giant model when all put together! (Turns out, exactly as they should! They all line up, where the smaller model estimates and HDIs line up almost exactly with the full model, difference is so small to be likely random draw/iteration based and not real)
+```{r}
+library(blavaan)
 library(brms)
 library(qgraph)
 library(bayestestR)
 options(mc.cores = parallel::detectCores())
+
+A.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z +
+bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
+bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.1,.12)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+
+#Outcome Estimators:
+IAS_KM_KM:= aKM1*bASi
+IAS_KM_Amuse:= aKM2*bASi
+IAS_KM_Con:= intKM*bASi
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KM_KM:= aKM1*bAFi
+IAF_KM_Amuse:= aKM2*bAFi
+IAF_KM_Con:= intKM*bAFi
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+'
 ```
 
 ```{r}
-contrasts(df$Cond) #just confirming our contrast structure for our categorical variable
+fit_A <- bsem(A.model, data = df, n.chains = 4, burnin = 1000, sample = 5000, seed = 123) #5000, 10000 for full (takes ~1.5hrs)
 ```
+```{r}
+summary(fit_A)
+```
+
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+R.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+RNS_2_Z ~ prior("normal(0.09,.03)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0.11,.05)")*CondKM + prior("normal(.75,.02)")*RNS_1_Z +
+bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~ prior("normal(-.05,.02)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.05,.04)")*CondKM + prior("normal(0.87,.02)")*RNF_1_Z +
+bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
+
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.1,.12)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+RNS_2_Z ~ prior("normal(-.16,.08)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.08,.06)")*1 +
+intRF*1
+
+
+#Outcome Estimators:
+IRS_KM_KM:= aKM1*bRSi
+IRS_KM_Amuse:= aKM2*bRSi
+IRS_KM_Con:= intKM*bRSi
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KM_KM:= aKM1*bRFi
+IRF_KM_Amuse:= aKM2*bRFi
+IRF_KM_Con:= intKM*bRFi
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+'
+```
+
+```{r}
+fit_R <- bsem(R.model, data = df, n.chains = 4, burnin = 1000, sample = 5000, seed = 123) #5000, 10000 for full (takes ~1.5hrs)
+```
+```{r}
+summary(fit_R)
+```
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+C.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
+bCSi*pKM_Z + bCSii*PosAff_Z + cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z +
+bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.1,.12)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+ICS_KM_KM:= aKM1*bCSi
+ICS_KM_Amuse:= aKM2*bCSi
+ICS_KM_Con:= intKM*bCSi
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KM_KM:= aKM1*bCFi
+ICF_KM_Amuse:= aKM2*bCFi
+ICF_KM_Con:= intKM*bCFi
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+'
+```
+
+```{r}
+fit_C <- bsem(C.model, data = df, n.chains = 4, burnin = 1000, sample = 5000, seed = 123) #5000, 10000 for full (takes ~1.5hrs)
+```
+
+```{r}
+summary(fit_C)
+```
+
+
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+ARC.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z +
+bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
+bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z
+
+RNS_2_Z ~ prior("normal(0.09,.03)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0.11,.05)")*CondKM + prior("normal(.75,.02)")*RNS_1_Z +
+bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~ prior("normal(-.05,.02)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.05,.04)")*CondKM + prior("normal(0.87,.02)")*RNF_1_Z +
+bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
+bCSi*pKM_Z + bCSii*PosAff_Z + cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z +
+bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.1,.12)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.16,.08)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.08,.06)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+IAS_KM_KM:= aKM1*bASi
+IAS_KM_Amuse:= aKM2*bASi
+IAS_KM_Con:= intKM*bASi
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KM_KM:= aKM1*bAFi
+IAF_KM_Amuse:= aKM2*bAFi
+IAF_KM_Con:= intKM*bAFi
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+
+IRS_KM_KM:= aKM1*bRSi
+IRS_KM_Amuse:= aKM2*bRSi
+IRS_KM_Con:= intKM*bRSi
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KM_KM:= aKM1*bRFi
+IRF_KM_Amuse:= aKM2*bRFi
+IRF_KM_Con:= intKM*bRFi
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+
+ICS_KM_KM:= aKM1*bCSi
+ICS_KM_Amuse:= aKM2*bCSi
+ICS_KM_Con:= intKM*bCSi
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KM_KM:= aKM1*bCFi
+ICF_KM_Amuse:= aKM2*bCFi
+ICF_KM_Con:= intKM*bCFi
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+'
+```
+
+```{r}
+fit_ARC <- bsem(ARC.model, data = df, n.chains = 4, burnin = 5000, sample = 10000, seed = 123)
+#note the https://arxiv.org/abs/2301.08667 link about priors--I preregistered these priors, so we'll stick with em', but some priors might have changed behind the scenes, specifically that psi prior--which should be fine, since it's the latent var precision parameter (and we have no latent vars here)
+```
+
+
+```{r}
+summary(fit_ARC)
+```
+
+```{r}
+library(bayesplot)
+library(ggplot2)
+color_scheme_set("viridis")
+
+#Chain Mixing Plots
+plot(fit_ARC, pars = c(1:4, 35, 36), plot.type = "trace")#M Side
+ggsave("M_Trace_Plots.png")
+plot(fit_ARC, pars = c(5:14, 37,38), plot.type = "trace")#A Side
+ggsave("A_Trace_Plots.png")
+plot(fit_ARC, pars = c(15:24, 39,40), plot.type = "trace")#R Side
+ggsave("R_Trace_Plots.png")
+plot(fit_ARC, pars = c(25:34, 41,42), plot.type = "trace")#C Side
+ggsave("C_Trace_Plots.png")
+```
+
+```{r}
+#Autocorrelation Mixing Plots
+plot(fit_ARC, pars = c(1:4, 35, 36), plot.type = "acf")#M Side
+ggsave("M_Autorcor_Plots.png")
+plot(fit_ARC, pars = c(5:14, 37,38), plot.type = "acf")#A Side
+ggsave("A_Autorcor_Plots.png")
+plot(fit_ARC, pars = c(15:24, 39,40), plot.type = "acf")#R Side
+ggsave("R_Autorcor_Plots.png")
+plot(fit_ARC, pars = c(25:34, 41,42), plot.type = "acf")#C Side
+ggsave("C_Autorcor_Plots.png")
+```
+
+
+Effective Sample Size
+```{r}
+blavInspect(fit_ARC, "neff")
+```
+
+## Old Regressions (Deprecated, but keeping for reference)
 
 ### X->M Pathway
 
@@ -1108,7 +1427,7 @@ fit_AF <- brm(ANF_2_Z ~ ANF_1_Z + Cond + PosAff_Z + pKM_Z,
     data = df,
     prior = c(
       set_prior("normal(0,2)", class = "b", coef = "pKM_Z"),
-      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z"),
       set_prior("normal(0,2)", class = "b", coef = "CondAmuse"),
       set_prior("normal(0,2)", class = "b", coef = "CondKM"),
       set_prior("normal(0,2)", class = "b", coef = "ANF_1_Z"),
@@ -1228,7 +1547,7 @@ fit_RF <- brm(RNF_2_Z ~ RNF_1_Z + Cond + PosAff_Z + pKM_Z,
     data = df,
     prior = c(
       set_prior("normal(-0.05,.02)", class = "b", coef = "pKM_Z"),
-      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z"),
       set_prior("normal(0,2)", class = "b", coef = "CondAmuse"),
       set_prior("normal(-0.05,.04)", class = "b", coef = "CondKM"),
       set_prior("normal(0.87,.02)", class = "b", coef = "RNF_1_Z"),
@@ -1347,7 +1666,7 @@ fit_CF <- brm(CNF_2_Z ~ CNF_1_Z + Cond + PosAff_Z + pKM_Z,
     data = df,
     prior = c(
       set_prior("normal(0,2)", class = "b", coef = "pKM_Z"),
-      set_prior("normal(.10,1)", class = "b", coef = "PosAff_Z"),
+      set_prior("normal(-.10,1)", class = "b", coef = "PosAff_Z"),
       set_prior("normal(0,2)", class = "b", coef = "CondAmuse"),
       set_prior("normal(0,2)", class = "b", coef = "CondKM"),
       set_prior("normal(0,2)", class = "b", coef = "CNF_1_Z"),
@@ -1391,6 +1710,7 @@ Another, perhaps easier to see though less detailed summary
 ```{r}
 describe_posterior(fit_AF)
 ```
+
 ## Summary of Results
 
 ANS by pKM
@@ -1461,48 +1781,13 @@ ggMarginal(
   groupColour = TRUE, groupFill = TRUE)
 ```
 
-Autonomy
+
 ```{r}
-describe_posterior(fit_AS)
-describe_posterior(fit_AF)
+describe_posterior(fit_ARC)
 ```
-##### ANS #####
-The conditions by themselves had little to no effect, so much so as to be effectively null, on the outcome. The pre-test score accounted for the vast majority of the variance in T2 autonomy (T1, beta = .80). PA seemed to have a positive impact on ANS residualized change, while KM by itself had null effect.
-
-##### ANF #####
-The conditions by themselves had little to no effect, so much so as to be effectively null, on the outcome. The pre-test score accounted for the vast majority of the variance in T2 autonomy (T1, beta = .87). PA seemed to have a negative impact on ANF residualized change, while KM by itself had null effect.
 
 
-TLDR: KM, sans it's PA feature, does little to Autonomy needs.
-
-Relatedness
-```{r}
-describe_posterior(fit_RS)
-describe_posterior(fit_RF)
-```
-##### RNS #####
-The conditions by themselves had little to no effect, so much so as to be effectively null, on the outcome. The pre-test score accounted for the vast majority of the variance in T2 autonomy (T1, beta = .75). PA seemed to have a positive impact on RNS residualized change, while KM by itself had marginally non-null effects.
-
-
-##### RNF #####
-The conditions by themselves had little to no effect, so much so as to be effectively null, on the outcome. The pre-test score accounted for the vast majority of the variance in T2 autonomy (T1, beta = .86). PA seemed to have small to null negative impact on RNF residualized change, while KM by itself had marginally non-null effects.
-
-TLDR: KM, sans PA feature, has little to null effects (but in logical direction) for relatedness needs sat and frust.
-
-Competency
-```{r}
-describe_posterior(fit_CS)
-describe_posterior(fit_CF)
-```
-##### CNS #####
-The conditions by themselves had little to no effect, so much so as to be effectively null, on the outcome. The pre-test score accounted for the vast majority of the variance in T2 autonomy (T1, beta = .84). PA seemed to have a positive impact on CNS residualized change, while KM by itself had null effect.
-
-##### CNF #####
-The conditions by themselves had little to no effect, so much so as to be effectively null, on the outcome. The pre-test score accounted for the vast majority of the variance in T2 autonomy (T1, beta = .84). PA seemed to have a negative impact on CNF residualized change, while KM by itself had null effect.
-
-TLDR: KM, sans PA feature, has null effect on competency needs.
-
-##### Summaries, Visualizations, Write-Up Materials
+## Descriptives, Visualizations, Write-Up Materials
 ### Exclusions
 ```{r}
 missing_table
@@ -1542,7 +1827,7 @@ table(df$Student)
 ### Visualizing
 library(diagram)
 names <- c("X", "Y")
-M <- matrix(nrow = 2, ncol = 2, byrow = T,
+M <- matrix(nrow = 2, ncol = 2, byrow = T
             data = c(0, 0,
                      "c", 0),
             dimnames = list(names, 
