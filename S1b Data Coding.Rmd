@@ -606,6 +606,7 @@ ggplot(df, aes(x = KM_Avg, y = pKM, color = Cond)) +
        color = "Condition")
 ```
 
+
 Individual KM Aspects
 ```{r}
 p1 <- ggplot(df, aes(KM_P, group = Cond, fill = Cond)) +
@@ -1092,10 +1093,10 @@ bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
 ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
 bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z
 
-RNS_2_Z ~ prior("normal(0.09,.03)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0.11,.05)")*CondKM + prior("normal(.75,.02)")*RNS_1_Z +
+RNS_2_Z ~ prior("normal(.052,.041)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z +
 bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
 
-RNF_2_Z ~ prior("normal(-.05,.02)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.05,.04)")*CondKM + prior("normal(0.87,.02)")*RNF_1_Z +
+RNF_2_Z ~ prior("normal(-.014,.032)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z +
 bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
 
 CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
@@ -1105,7 +1106,7 @@ CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior(
 bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
 
 #Intercepts: 
-pKM_Z~ prior("normal(-2.1,.12)")*1 +
+pKM_Z~ prior("normal(-2.162,.092)")*1 +
 intKM*1
 PosAff_Z ~ prior("normal(0,2)")*1 +
 intPA*1
@@ -1113,9 +1114,9 @@ ANS_2_Z ~ prior("normal(0,2)")*1 +
 intAS*1
 ANF_2_Z ~ prior("normal(0,2)")*1 +
 intAF*1
-RNS_2_Z ~ prior("normal(-.16,.08)")*1 +
+RNS_2_Z ~ prior("normal(-.244,.116)")*1 +
 intRS*1
-RNF_2_Z ~ prior("normal(.08,.06)")*1 +
+RNF_2_Z ~ prior("normal(.183,.091)")*1 +
 intRF*1
 CNS_2_Z ~ prior("normal(0,2)")*1 +
 intCS*1
@@ -1207,6 +1208,60 @@ Effective Sample Size
 ```{r}
 blavInspect(fit_ARC, "neff")
 ```
+Exploratory C' path analyses
+
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+Cprime.model <- '
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z +
+cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~  prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
+aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z
+
+RNS_2_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z +
+cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~  prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z +
+cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
+cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z +
+cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,.116)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,.091)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+'
+```
+
+```{r}
+fit_Cprime <- bsem(Cprime.model, data = df, n.chains = 4, burnin = 5000, sample = 10000, seed = 123)
+```
+
+```{r}
+summary(fit_Cprime)
+#interestingly, the KM condition does not "pop" out here. It works, but the amusement condition keeps up if not exceeds it in most cases insofar as ARC need attributes. 
+```
+
 
 ## Old Regressions (Deprecated, but keeping for reference)
 
