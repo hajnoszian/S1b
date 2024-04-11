@@ -273,6 +273,13 @@ df$ANS_1 <- rowMeans(df[,c("Aut1S_1", "Aut1S_2", "Aut1S_3", "Aut1S_4")], na.rm =
 df$ANF_1 <- rowMeans(df[,c("Aut1F_5", "Aut1F_6", "Aut1F_7", "Aut1F_8")], na.rm = T)
 ```
 
+Alpha
+```{r}
+ltm::cronbach.alpha(df[,c("Aut1S_1", "Aut1S_2", "Aut1S_3", "Aut1S_4")], standardized = T, CI = T)
+ltm::cronbach.alpha(df[,c("Aut1F_5", "Aut1F_6", "Aut1F_7", "Aut1F_8")], standardized = T, CI = T)
+```
+
+
 T1 Relatedness Satisfaction & Frustration
 ```{r}
 #Rel Sat items: 1, 2, 3, 4
@@ -282,6 +289,13 @@ df$RNS_1 <- rowMeans(df[,c("Rel1S_1", "Rel1S_2", "Rel1S_3", "Rel1S_4")], na.rm =
 df$RNF_1 <- rowMeans(df[,c("Rel1F_5", "Rel1F_6", "Rel1F_7", "Rel1F_8")], na.rm = T)
 ```
 
+Alpha
+```{r}
+ltm::cronbach.alpha(df[,c("Rel1S_1", "Rel1S_2", "Rel1S_3", "Rel1S_4")], standardized = T, CI = T)
+ltm::cronbach.alpha(df[,c("Rel1F_5", "Rel1F_6", "Rel1F_7", "Rel1F_8")], standardized = T, CI = T, na.rm = T)
+```
+
+
 T1 Competency Satisfaction & Frustration
 ```{r}
 #Comp Sat items: 1, 2, 3, 4
@@ -290,6 +304,12 @@ df$CNS_1 <- rowMeans(df[,c("Comp1S_1", "Comp1S_2", "Comp1S_3", "Comp1S_4")], na.
 #Comp Frus itmes: 5, 6, 7, 8
 df$CNF_1 <- rowMeans(df[,c("Comp1F_5", "Comp1F_6", "Comp1F_7", "Comp1F_8")], na.rm = T)
 ```
+
+```{r}
+ltm::cronbach.alpha(df[,c("Comp1S_1", "Comp1S_2", "Comp1S_3", "Comp1S_4")], standardized = T, CI = T, na.rm = T)
+ltm::cronbach.alpha(df[,c("Comp1F_5", "Comp1F_6", "Comp1F_7", "Comp1F_8")], standardized = T, CI = T, na.rm = T)
+```
+
 Empathic Concern
 Note, that this has a zero-point in it's scale. This means the reverse score equation is 
 Reversed score = (total available responses in scale - 1) - Reported Score.
@@ -342,6 +362,15 @@ df$KM_M <- rowMeans(df[, c("KM_M_1","KM_M_2", "KM_M_3", "KM_M_4")], na.rm = T)
 df$KM_L <- rowMeans(df[, c("KM_L_1", "KM_L_2", "KM_L_3")], na.rm = T)
 ```
 
+KM Alpha
+```{r}
+ltm::cronbach.alpha(df[, c("KM_P_1","KM_P_2", "KM_P_3", "KM_P_4" ,"KM_P_5", "KM_P_6", "KM_P_7", "KM_P_8", "KM_P_9", "KM_P_10", "KM_P_11","KM_P_12", "KM_CSR_1","KM_CSR_2","KM_CSR_3", "KM_CSR_4","KM_M_1","KM_M_2", "KM_M_3", "KM_M_4","KM_L_1", "KM_L_2", "KM_L_3")], standardized = T, CI = T, na.rm = T)
+```
+```{r}
+ltm::cronbach.alpha(df[, c("KM_L", "KM_M", "KM_CSR", "KM_P")], standardized = T, CI = T, na.rm = T)
+```
+
+
 The KAMMUS Scale technically only reflects the likelihood of a given experience being kama muta, rather than a direct measure of the emotion itself. As such, a complete KM score cannot be summed together. We instead directly apply a probability function to the kama muta scores to quantitatively reflect this scale issue.
 
 KM_Avg
@@ -381,6 +410,11 @@ df$PosAff <- rowMeans(df[,c("PANAS_PA1", "PANAS_PA2", "PANAS_PA3", "PANAS_PA4", 
 
 ```
 
+Alpha
+```{r}
+ltm::cronbach.alpha(df[,c("PANAS_PA1", "PANAS_PA2", "PANAS_PA3", "PANAS_PA4", "PANAS_PA5")], standardized = T, CI = T, na.rm = T)
+```
+
 T2 Autonomy Satisfaction & Frustration
 ```{r}
 #Aut Sat items: 1, 2, 3, 4
@@ -390,6 +424,14 @@ df$ANS_2 <- rowMeans(df[,c("Aut2S_1", "Aut2S_2", "Aut2S_3", "Aut2S_4")], na.rm =
 df$ANF_2 <- rowMeans(df[,c("Aut2F_5", "Aut2F_6", "Aut2F_7", "Aut2F_8")], na.rm = T)
 ```
 
+Alpha
+```{r}
+ltm::cronbach.alpha(df[,c("Aut2S_1", "Aut2S_2", "Aut2S_3", "Aut2S_4")], standardized = T, CI = T, na.rm = T)
+ltm::cronbach.alpha(df[,c("Aut2F_5", "Aut2F_6", "Aut2F_7", "Aut2F_8")], standardized = T, CI = T, na.rm = T)
+
+```
+
+
 T2 Relatedness Satisfaction & Frustration
 ```{r}
 #Rel Sat items: 1, 2, 3, 4
@@ -397,6 +439,13 @@ df$RNS_2 <- rowMeans(df[,c("Rel2S_1", "Rel2S_2", "Rel2S_3", "Rel2S_4")], na.rm =
 
 #Rel Frus itmes: 5, 6, 7, 8
 df$RNF_2 <- rowMeans(df[,c("Rel2F_5", "Rel2F_6", "Rel2F_7", "Rel2F_8")], na.rm = T)
+```
+
+Alpha
+```{r}
+ltm::cronbach.alpha(df[,c("Rel2S_1", "Rel2S_2", "Rel2S_3", "Rel2S_4")], standardized = T, CI = T, na.rm = T)
+ltm::cronbach.alpha(df[,c("Rel2F_5", "Rel2F_6", "Rel2F_7", "Rel2F_8")], standardized = T, CI = T, na.rm = T)
+
 ```
 
 T2 Competency Satisfaction & Frustration
@@ -408,7 +457,12 @@ df$CNS_2 <- rowMeans(df[,c("Comp2S_1", "Comp2S_2", "Comp2S_3", "Comp2S_4")], na.
 df$CNF_2 <- rowMeans(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], na.rm = T)
 ```
 
+Alpha
+```{r}
+ltm::cronbach.alpha(df[,c("Comp2S_1", "Comp2S_2", "Comp2S_3", "Comp2S_4")], standardized = T, CI = T, na.rm = T)
+ltm::cronbach.alpha(df[,c("Comp2F_5", "Comp2F_6", "Comp2F_7", "Comp2F_8")], standardized = T, CI = T, na.rm = T)
 
+```
 ### Checking for Data Issues, Removing Problem Cases
 The data processing is nearly done,now to check and attend to some final quality signs
 
@@ -595,6 +649,26 @@ ggplot(df, aes(Cond, PosAff_Z, fill = Cond)) +
        x = "",
        y = "Positive Affect (Standardized)")
 ggsave("PA_Group.png")
+```
+
+```{r}
+ggplot(df, aes(Cond, PosAff)) +
+  ggdist::stat_halfeye(adjust = .5, width = .3, .width = -.5, justification = -.2) + 
+  geom_boxplot(width = .1, outlier.shape = NA) +
+  gghalves::geom_half_point(side = "l", range_scale = .2, alpha = .2)+
+  theme(legend.position = "none") +
+  labs(x ="",
+       y = "Positive Affect")
+```
+```{r}
+ggplot(df, aes(Cond, pKM)) +
+  ggdist::stat_halfeye(adjust = .5, width = .3, .width = -.5, justification = -.2) + 
+  geom_boxplot(width = .1, outlier.shape = NA) +
+  gghalves::geom_half_point(side = "l", range_scale = .2, alpha = .2)+
+  theme(legend.position = "none") +
+  labs(title = "Videos by Kama Muta", 
+       x ="",
+       y = "pKM")
 ```
 
 
@@ -1208,6 +1282,20 @@ Effective Sample Size
 ```{r}
 blavInspect(fit_ARC, "neff")
 ```
+
+```{r}
+options(future.globals.maxSize= 1200*1024^2)
+ppmc_fit_ARC <- ppmc(fit_ARC, thin = 100, fit.measures = c("srmr","chisq","rmsea","cfi"), discFUN = NULL,
+     conditional = FALSE)
+summary(ppmc_fit_ARC)
+```
+
+```{r}
+rope(fit_ARC, range = c(-.05, .05))
+
+```
+
+
 Exploratory C' path analyses
 
 ```{r}
@@ -1859,6 +1947,13 @@ df %>% select(
   Gender, Age, Race, Education, Employed, Income, SexualOr) %>% 
   summary()
 ```
+#### Gender & Sex
+```{r}
+table(df$Gender)
+prop.table(table(df$Gender))*100
+```
+
+
 #### Age
 ```{r}
 sd(df$Age)
@@ -1882,7 +1977,7 @@ table(df$Student)
 ### Visualizing
 library(diagram)
 names <- c("X", "Y")
-M <- matrix(nrow = 2, ncol = 2, byrow = T
+M <- matrix(nrow = 2, ncol = 2, byrow = T,
             data = c(0, 0,
                      "c", 0),
             dimnames = list(names, 
