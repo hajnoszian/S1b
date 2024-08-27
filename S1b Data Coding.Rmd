@@ -257,6 +257,8 @@ Now to do some broad checks across the variables to see if any outliers, impossi
 ```{r}
 summary(df)
 ```
+
+
 ### Pre-Processing
 Now that the variables are entered correctly, we can go about making the appropriate transformations, reverse-codings etc. on those variables
 
@@ -576,6 +578,7 @@ df$RNS_2_Z <- scale(df$RNS_2)[,1]
 df$RNF_2_Z <- scale(df$RNF_2)[,1]
 df$CNS_2_Z <- scale(df$CNS_2)[,1]
 df$CNF_2_Z <- scale(df$CNF_2)[,1]
+df$EC_Z <- scale(df$EC)[,1]
 ```
 
 #### Final df Check
@@ -583,6 +586,44 @@ df$CNF_2_Z <- scale(df$CNF_2)[,1]
 summary(df)
 ```
 Good, not seeing any unspoken for NAs
+
+```{r}
+df |> 
+  summarise(
+    ANS1mean = mean(ANS_1),
+    ANS1sd = sd(ANS_1),
+    ANS2mean = mean(ANS_2),
+    ANS2sd = sd(ANS_2),
+    ANF1mean = mean(ANF_1),
+    ANF1sd = sd(ANF_1),
+    ANF2mean = mean(ANF_2),
+    ANF2sd = sd(ANF_2),
+    
+    RNS1mean = mean(RNS_1),
+    RNS1sd = sd(RNS_1),
+    RNS2mean = mean(RNS_2),
+    RNS2sd = sd(RNS_2),
+    RNF1mean = mean(RNF_1),
+    RNF1sd = sd(RNF_1),
+    RNF2mean = mean(RNF_2),
+    RNF2sd = sd(RNF_2),
+    
+    CNS1mean = mean(CNS_1),
+    CNS1sd = sd(CNS_1),
+    CNS2mean = mean(CNS_2),
+    CNS2sd = sd(CNS_2),
+    CNF1mean = mean(CNF_1),
+    CNF1sd = sd(CNF_1),
+    CNF2mean = mean(CNF_2),
+    CNF2sd = sd(CNF_2),
+
+    KMmean = mean(KM_Avg),
+    KMsd = sd(KM_Avg),
+    
+    PAmean = mean(PosAff),
+    PAsd = sd(PosAff)
+  )
+```
 
 ## Initial Visualizations
 ```{r eval=FALSE}
@@ -640,6 +681,20 @@ ggplot(df, aes(Cond, pKM, fill = Cond)) +
        x = "",
        y = "pKM")
 ```
+##### Previous experience
+```{r}
+ggplot(df, aes(Cond, pKM, fill = Vid_PrevExp)) +
+  geom_boxplot(width = 0.1, color = "black", alpha = 0.4) +
+  scale_fill_viridis(discrete=TRUE, name = "Previous Video Experience")+
+  labs(title = "Violin Distribution of Kama Muta Experience",
+       x = "",
+       y = "pKM")
+```
+```{r}
+table(df$Cond, df$Vid_PrevExp) #hard to interpret these models since we have only 1 who's seen the control vid
+```
+
+
 ```{r}
 ggplot(df, aes(Cond, PosAff_Z, fill = Cond)) +
   geom_violin() +
@@ -669,6 +724,15 @@ ggplot(df, aes(Cond, pKM)) +
   labs(title = "Videos by Kama Muta", 
        x ="",
        y = "pKM")
+```
+```{r}
+ggplot(df, aes(Cond, NegAff)) +
+  ggdist::stat_halfeye(adjust = .5, width = .3, .width = -.5, justification = -.2) + 
+  geom_boxplot(width = .1, outlier.shape = NA) +
+  gghalves::geom_half_point(side = "l", range_scale = .2, alpha = .2)+
+  theme(legend.position = "none") +
+  labs(x ="",
+       y = "Negative Affect")
 ```
 
 
@@ -1144,8 +1208,63 @@ fit_C <- bsem(C.model, data = df, n.chains = 4, burnin = 1000, sample = 5000, se
 ```{r}
 summary(fit_C)
 ```
+##### Direct model
+
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+Direct.model <- '
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z +
+cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~  prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
+aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z
+
+RNS_2_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~  prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z +
+cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
+cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z
+
+CNF_2_Z ~  prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z +
+cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,.116)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,.091)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+'
+
+```
+
+```{r}
+fit_Direct.model <- bsem(Direct.model, data = df, n.chains = 4, burnin = 500, sample = 1000, seed = 123)
+```
+
+```{r}
+summary(fit_Direct.model)
+```
 
 
+##### Main Model
 ```{r}
 library(blavaan)
 library(brms)
@@ -1246,7 +1365,8 @@ fit_ARC <- bsem(ARC.model, data = df, n.chains = 4, burnin = 5000, sample = 1000
 
 
 ```{r}
-summary(fit_ARC)
+summary(fit_ARC) # I suspect some of the condition effects would change based off of priors
+#Exploratory analyses show that actually no they don't change much if I add wider priors
 ```
 
 ```{r}
@@ -1292,7 +1412,12 @@ summary(ppmc_fit_ARC)
 
 ```{r}
 rope(fit_ARC, range = c(-.05, .05))
+```
 
+
+```{r}
+rope(fit_ARC, range = c(.069, .572))#Just to see overlap of KM and Amuse conditions on PA
+#Answer, about 50%
 ```
 
 
@@ -1348,6 +1473,783 @@ fit_Cprime <- bsem(Cprime.model, data = df, n.chains = 4, burnin = 5000, sample 
 ```{r}
 summary(fit_Cprime)
 #interestingly, the KM condition does not "pop" out here. It works, but the amusement condition keeps up if not exceeds it in most cases insofar as ARC need attributes. 
+```
+
+### Exploratory Subscale
+
+```{r}
+df <- df |> 
+  mutate(
+    KM_P_Z = scale(KM_P),
+    KM_CSR_Z = scale(KM_CSR),
+    KM_M_Z = scale(KM_M),
+    KM_L_Z = scale(KM_L),
+  )
+
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+ARC_Sub.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+
+KM_P_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.23,.09)")*CondKM + 
+ aKM_P2*CondAmuse+ aKM_P1*CondKM
+KM_CSR_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.33,.09)")*CondKM + 
+ aKM_CSR2*CondAmuse+ aKM_CSR1*CondKM
+KM_M_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.05,.10)")*CondKM + 
+ aKM_M2*CondAmuse+ aKM_M1*CondKM
+KM_L_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.59,.07)")*CondKM + 
+ aKM_L2*CondAmuse+ aKM_L1*CondKM
+
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*KM_P_Z + prior("normal(0,2)")*KM_CSR_Z + prior("normal(0,2)")*KM_M_Z + prior("normal(0,2)")*KM_L_Z +  
+prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z +
+bAS_P*KM_P_Z + bAS_CSR*KM_CSR_Z + bAS_M*KM_M_Z + bAS_L*KM_L_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*KM_P_Z + prior("normal(0,2)")*KM_CSR_Z + prior("normal(0,2)")*KM_M_Z + prior("normal(0,2)")*KM_L_Z +  
+prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
+bAF_P*KM_P_Z + bAF_CSR*KM_CSR_Z + bAF_M*KM_M_Z + bAF_L*KM_L_Z + bAFii*PosAff_Z + cAF1*CondKM + cAF2*CondAmuse +dAF*ANF_1_Z
+
+RNS_2_Z ~ prior("normal(.03, .04)")*KM_P_Z + prior("normal(.12, .05)")*KM_CSR_Z + prior("normal(.05, .04)")*KM_M_Z + prior("normal(.06, .05)")*KM_L_Z
++ prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z +
+bRS_P*KM_P_Z + bRS_CSR*KM_CSR_Z + bRS_M*KM_M_Z + bRS_L*KM_L_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~ prior("normal(-.02, .03)")*KM_P_Z + prior("normal(-.04, .04)")*KM_CSR_Z + prior("normal(-.02, .03)")*KM_M_Z + prior("normal(-.03, .04)")*KM_L_Z
++ prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z +
+bRF_P*KM_P_Z + bRF_CSR*KM_CSR_Z + bRF_M*KM_M_Z + bRF_L*KM_L_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*KM_P_Z + prior("normal(0,2)")*KM_CSR_Z + prior("normal(0,2)")*KM_M_Z + prior("normal(0,2)")*KM_L_Z + 
+prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
+bCS_P*KM_P_Z + bCS_CSR*KM_CSR_Z + bCS_M*KM_M_Z + bCS_L*KM_L_Z + bCSii*PosAff_Z + cCS1*CondKM + cCS2*CondAmuse +dCS*CNS_1_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*KM_P_Z + prior("normal(0,2)")*KM_CSR_Z + prior("normal(0,2)")*KM_M_Z + prior("normal(0,2)")*KM_L_Z +
+prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z +
+bCF_P*KM_P_Z + bCF_CSR*KM_CSR_Z + bCF_M*KM_M_Z + bCF_L*KM_L_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+KM_P_Z ~ prior("normal(-1.85, .15)")*1 +
+intKM_P*1
+KM_CSR_Z ~ prior("normal(-1.99, .14)")*1 +
+intKM_CSR*1
+KM_M_Z ~ prior("normal(-1.57, .16)")*1 +
+intKM_M*1
+KM_L_Z ~ prior("normal(-2.38, .11)")*1 +
+intKM_L*1
+
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,.116)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,.091)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+IAS_KMP_KM:= aKM_P1*bAS_P
+IAS_KMCSR_KM:= aKM_CSR1*bAS_CSR
+IAS_KMM_KM:= aKM_M1*bAS_M
+IAS_KML_KM:= aKM_L1*bAS_L
+IAS_KMP_Amuse:= aKM_P2*bAS_P
+IAS_KMCSR_Amuse:= aKM_CSR2*bAS_CSR
+IAS_KMM_Amuse:= aKM_M2*bAS_M
+IAS_KML_Amuse:= aKM_L2*bAS_L
+IAS_KMP_Con:= intKM_P*bAS_P
+IAS_KMCSR_Con:= intKM_CSR*bAS_CSR
+IAS_KMM_Con:= intKM_M*bAS_M
+IAS_KML_Con:= intKM_L*bAS_L
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KMP_KM:= aKM_P1*bAF_P
+IAF_KMCSR_KM:= aKM_CSR1*bAF_CSR
+IAF_KMM_KM:= aKM_M1*bAF_M
+IAF_KML_KM:= aKM_L1*bAF_L
+IAF_KMP_Amuse:= aKM_P2*bAF_P
+IAF_KMCSR_Amuse:= aKM_CSR2*bAF_CSR
+IAF_KMM_Amuse:= aKM_M2*bAF_M
+IAF_KML_Amuse:= aKM_L2*bAF_L
+IAF_KMP_Con:= intKM_P*bAF_P
+IAF_KMCSR_Con:= intKM_CSR*bAF_CSR
+IAF_KMM_Con:= intKM_M*bAF_M
+IAF_KML_Con:= intKM_L*bAF_L
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+
+IRS_KMP_KM:= aKM_P1*bRS_P
+IRS_KMCSR_KM:= aKM_CSR1*bRS_CSR
+IRS_KMM_KM:= aKM_M1*bRS_M
+IRS_KML_KM:= aKM_L1*bRS_L
+IRS_KMP_Amuse:= aKM_P2*bRS_P
+IRS_KMCSR_Amuse:= aKM_CSR2*bRS_CSR
+IRS_KMM_Amuse:= aKM_M2*bRS_M
+IRS_KML_Amuse:= aKM_L2*bRS_L
+IRS_KMP_Con:= intKM_P*bRS_P
+IRS_KMCSR_Con:= intKM_CSR*bRS_CSR
+IRS_KMM_Con:= intKM_M*bRS_M
+IRS_KML_Con:= intKM_L*bRS_L
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KMP_KM:= aKM_P1*bRF_P
+IRF_KMCSR_KM:= aKM_CSR1*bRF_CSR
+IRF_KMM_KM:= aKM_M1*bRF_M
+IRF_KML_KM:= aKM_L1*bRF_L
+IRF_KMP_Amuse:= aKM_P2*bRF_P
+IRF_KMCSR_Amuse:= aKM_CSR2*bRF_CSR
+IRF_KMM_Amuse:= aKM_M2*bRF_M
+IRF_KML_Amuse:= aKM_L2*bRF_L
+IRF_KMP_Con:= intKM_P*bRF_P
+IRF_KMCSR_Con:= intKM_CSR*bRF_CSR
+IRF_KMM_Con:= intKM_M*bRF_M
+IRF_KML_Con:= intKM_L*bRF_L
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+
+ICS_KMP_KM:= aKM_P1*bCS_P
+ICS_KMCSR_KM:= aKM_CSR1*bCS_CSR
+ICS_KMM_KM:= aKM_M1*bCS_M
+ICS_KML_KM:= aKM_L1*bCS_L
+ICS_KMP_Amuse:= aKM_P2*bCS_P
+ICS_KMCSR_Amuse:= aKM_CSR2*bCS_CSR
+ICS_KMM_Amuse:= aKM_M2*bCS_M
+ICS_KML_Amuse:= aKM_L2*bCS_L
+ICS_KMP_Con:= intKM_P*bCS_P
+ICS_KMCSR_Con:= intKM_CSR*bCS_CSR
+ICS_KMM_Con:= intKM_M*bCS_M
+ICS_KML_Con:= intKM_L*bCS_L
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KMP_KM:= aKM_P1*bCF_P
+ICF_KMCSR_KM:= aKM_CSR1*bCF_CSR
+ICF_KMM_KM:= aKM_M1*bCF_M
+ICF_KML_KM:= aKM_L1*bCF_L
+ICF_KMP_Amuse:= aKM_P2*bCF_P
+ICF_KMCSR_Amuse:= aKM_CSR2*bCF_CSR
+ICF_KMM_Amuse:= aKM_M2*bCF_M
+ICF_KML_Amuse:= aKM_L2*bCF_L
+ICF_KMP_Con:= intKM_P*bCF_P
+ICF_KMCSR_Con:= intKM_CSR*bCF_CSR
+ICF_KMM_Con:= intKM_M*bCF_M
+ICF_KML_Con:= intKM_L*bCF_L
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+
+'
+```
+
+```{r}
+fit_ARC_Sub <- bsem(ARC_Sub.model, data = df, n.chains = 4, burnin = 500, sample = 1000, seed = 123) #using Stan defaults. I used jags defaults of chains, burin and sampling with Stan in prev models as per pre-reg which is just a lot less efficient.
+
+```
+
+```{r}
+plot(fit_ARC_Sub, pars = c(1:4, 35, 36), plot.type = "acf")
+plot(fit_ARC, pars = c(1:4, 35, 36), plot.type = "trace")
+```
+
+```{r}
+options(future.globals.maxSize= 1200*1024^2)
+ppmc_fit_ARC_Sub <- ppmc(fit_ARC_Sub, thin = 100, fit.measures = c("srmr","chisq","rmsea","cfi"), discFUN = NULL,
+     conditional = FALSE)
+summary(ppmc_fit_ARC_Sub) #model fit takes a hit from the inefficiency, lack of parsimony. 
+```
+
+
+```{r}
+blavInspect(fit_ARC_Sub, "neff")
+```
+
+
+```{r}
+summary(fit_ARC_Sub)
+
+#Aut PA credible IE, M almost credible for Frus
+##Sat: Normal around 0 KM subscale mediators. No effects. PA doing work
+##Frus: Motive actually has something here (POSITIVE?? More i feel motive, more frus). PA still doing most of work
+#Rel: PA only credible IE
+##Sat: Normal around 0 KM subscale mediators. No effects. PA doing work
+##Frus: Normal around 0 KM subscale mediators. No effects. PA doing work
+#Com: PA credible IEs, CSR credible for Frus
+##Sat: Label maybe but still mostly 0 here. PA doing work
+##Frus: CSR is popping here along with PA. Both doing work in same direction.CSR is actually largest indirect effect here
+
+#TLDR: PA does the work for all. CSR maybe on Comp Frus.
+```
+
+
+
+```{r}
+rope(fit_ARC_Sub, range = c(-.05, .05))
+```
+
+
+### Exploratory Conditions Evaluation
+
+```{r}
+df_Cond <- df
+contrasts(df_Cond$Cond) # "Amuse", alphabetically first, is the current reference grouup
+df_Cond$Cond <- fct_relevel(df_Cond$Cond, "KM") #re-leveling for reference group
+#Since we just releveled to KM--KM intercept, Neutral, Amuse. So we need the 2nd factor as a new var
+df_Cond$CondNeutral <- model.matrix(~df_Cond$Cond + 0)[,2]
+```
+
+Changing the priors on the neutral condition effects to weakly informative and updating the priors to be wider to accomodate the unknown new intercept going in
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+CondARC.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral + 
+ aKM2*CondAmuse+ aKM1*CondNeutral
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral +
+aPA2*CondAmuse + aPA1*CondNeutral
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral + prior("normal(0,2)")*ANS_1_Z +
+bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondNeutral + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral + prior("normal(0,2)")*ANF_1_Z +
+bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondNeutral + cAF2*CondAmuse + dAF*ANF_1_Z
+
+RNS_2_Z ~ prior("normal(.052,2)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral + prior("normal(.740,2)")*RNS_1_Z +
+bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondNeutral + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~ prior("normal(-.014,2)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral + prior("normal(0.84,2)")*RNF_1_Z +
+bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondNeutral + cRF2*CondAmuse + dRF*RNF_1_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral + prior("normal(0,2)")*CNS_1_Z +
+bCSi*pKM_Z + bCSii*PosAff_Z + cCS1*CondNeutral + cCS2*CondAmuse + dCS*CNS_1_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondNeutral + prior("normal(0,2)")*CNF_1_Z +
+bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondNeutral + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(0,2)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,2)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,2)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+IAS_KM_KM:= aKM1*bASi
+IAS_KM_Amuse:= aKM2*bASi
+IAS_KM_Con:= intKM*bASi
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KM_KM:= aKM1*bAFi
+IAF_KM_Amuse:= aKM2*bAFi
+IAF_KM_Con:= intKM*bAFi
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+
+IRS_KM_KM:= aKM1*bRSi
+IRS_KM_Amuse:= aKM2*bRSi
+IRS_KM_Con:= intKM*bRSi
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KM_KM:= aKM1*bRFi
+IRF_KM_Amuse:= aKM2*bRFi
+IRF_KM_Con:= intKM*bRFi
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+
+ICS_KM_KM:= aKM1*bCSi
+ICS_KM_Amuse:= aKM2*bCSi
+ICS_KM_Con:= intKM*bCSi
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KM_KM:= aKM1*bCFi
+ICF_KM_Amuse:= aKM2*bCFi
+ICF_KM_Con:= intKM*bCFi
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+'
+```
+
+```{r}
+fit_Cond <- bsem(CondARC.model, data = df_Cond, n.chains = 4, burnin = 500, sample = 1000, seed = 123)
+```
+
+```{r}
+summary(fit_Cond) #this is the ARC model but with new reference intercept and respecified priors to weak informative N(0,2) since we don't know what they would be with new reference group
+```
+```{r}
+rope(fit_Cond, range = c(-.05, .05))
+```
+
+```{r}
+blavInspect(fit_Cond, "neff")
+```
+
+
+### Exploratory Priors Sensitivity (Conditions)
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+ARC2.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z +
+bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
+bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z
+
+RNS_2_Z ~ prior("normal(.052,.041)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z +
+bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~ prior("normal(-.014,.032)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z +
+bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
+bCSi*pKM_Z + bCSii*PosAff_Z + cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z +
+bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.162,2)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,2)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,2)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+IAS_KM_KM:= aKM1*bASi
+IAS_KM_Amuse:= aKM2*bASi
+IAS_KM_Con:= intKM*bASi
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KM_KM:= aKM1*bAFi
+IAF_KM_Amuse:= aKM2*bAFi
+IAF_KM_Con:= intKM*bAFi
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+
+IRS_KM_KM:= aKM1*bRSi
+IRS_KM_Amuse:= aKM2*bRSi
+IRS_KM_Con:= intKM*bRSi
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KM_KM:= aKM1*bRFi
+IRF_KM_Amuse:= aKM2*bRFi
+IRF_KM_Con:= intKM*bRFi
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+
+ICS_KM_KM:= aKM1*bCSi
+ICS_KM_Amuse:= aKM2*bCSi
+ICS_KM_Con:= intKM*bCSi
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KM_KM:= aKM1*bCFi
+ICF_KM_Amuse:= aKM2*bCFi
+ICF_KM_Con:= intKM*bCFi
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+'
+
+```
+
+```{r}
+fit_ARC2 <- bsem(ARC2.model, data = df, n.chains = 4, burnin = 500, sample = 1000, seed = 123)
+```
+
+```{r}
+summary(fit_ARC2)
+#largely unchanged condition effects, everything else is same with wider priors on intercepts. Good! 
+```
+
+### Exploratory EC Cov
+
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+ARC.EC.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z + prior("normal(0,2)")*EC_Z +
+bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z + eAS*EC_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z + prior("normal(0,2)")*EC_Z +
+bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z + eAF*EC_Z
+
+RNS_2_Z ~ prior("normal(.052,.041)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z + prior("normal(0,2)")*EC_Z +
+bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z + eRS*EC_Z
+
+RNF_2_Z ~ prior("normal(-.014,.032)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z + prior("normal(0,2)")*EC_Z +
+bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z + eRF*EC_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z + prior("normal(0,2)")*EC_Z +
+bCSi*pKM_Z + bCSii*PosAff_Z + cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z + eCS*EC_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z + prior("normal(0,2)")*EC_Z +
+bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z + eCF*EC_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.162,.092)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,.116)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,.091)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+IAS_KM_KM:= aKM1*bASi
+IAS_KM_Amuse:= aKM2*bASi
+IAS_KM_Con:= intKM*bASi
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KM_KM:= aKM1*bAFi
+IAF_KM_Amuse:= aKM2*bAFi
+IAF_KM_Con:= intKM*bAFi
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+
+IRS_KM_KM:= aKM1*bRSi
+IRS_KM_Amuse:= aKM2*bRSi
+IRS_KM_Con:= intKM*bRSi
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KM_KM:= aKM1*bRFi
+IRF_KM_Amuse:= aKM2*bRFi
+IRF_KM_Con:= intKM*bRFi
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+
+ICS_KM_KM:= aKM1*bCSi
+ICS_KM_Amuse:= aKM2*bCSi
+ICS_KM_Con:= intKM*bCSi
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KM_KM:= aKM1*bCFi
+ICF_KM_Amuse:= aKM2*bCFi
+ICF_KM_Con:= intKM*bCFi
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+'
+```
+
+```{r}
+fit_ARC.EC.model <- bsem(ARC.EC.model, data = df, n.chains = 4, burnin = 500, sample = 1000, seed = 123)
+```
+
+```{r}
+summary(fit_ARC.EC.model) #EC turns up for RS, but nothing else really. No other effects change in relation though. Kiiinda eats into PA effect on Rel but not much
+```
+
+```{r}
+rope(fit_ARC.EC.model, range = c(-.05, .05))
+```
+
+### Exploratory NA Cov
+Specifying the NA priors like the oppositve of the PA priors
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+ARC.NA.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM 
+NegAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aNA2*CondAmuse + aNA1*CondKM 
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z + prior("normal(-0.1,1)")*NegAff_Z +
+bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z + eAS*NegAff_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z + prior("normal(.1,1)")*NegAff_Z +
+bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z + eAF*NegAff_Z
+
+RNS_2_Z ~ prior("normal(.052,.041)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z + prior("normal(-.1,1)")*NegAff_Z +
+bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z + eRS*NegAff_Z
+
+RNF_2_Z ~ prior("normal(-.014,.032)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z + prior("normal(.1,1)")*NegAff_Z +
+bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z + eRF*NegAff_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z + prior("normal(-.1,1)")*NegAff_Z +
+bCSi*pKM_Z + bCSii*PosAff_Z + cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z + eCS*NegAff_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z + prior("normal(.1,1)")*NegAff_Z +
+bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z + eCF*NegAff_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.162,.092)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+NegAff_Z ~prior("normal(0,2)")*1 +
+intNA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,.116)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,.091)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+IAS_KM_KM:= aKM1*bASi
+IAS_KM_Amuse:= aKM2*bASi
+IAS_KM_Con:= intKM*bASi
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KM_KM:= aKM1*bAFi
+IAF_KM_Amuse:= aKM2*bAFi
+IAF_KM_Con:= intKM*bAFi
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+
+IRS_KM_KM:= aKM1*bRSi
+IRS_KM_Amuse:= aKM2*bRSi
+IRS_KM_Con:= intKM*bRSi
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KM_KM:= aKM1*bRFi
+IRF_KM_Amuse:= aKM2*bRFi
+IRF_KM_Con:= intKM*bRFi
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+
+ICS_KM_KM:= aKM1*bCSi
+ICS_KM_Amuse:= aKM2*bCSi
+ICS_KM_Con:= intKM*bCSi
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KM_KM:= aKM1*bCFi
+ICF_KM_Amuse:= aKM2*bCFi
+ICF_KM_Con:= intKM*bCFi
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+'
+```
+
+```{r}
+fit_ARC.NA.model <- bsem(ARC.NA.model, data = df, n.chains = 4, burnin = 500, sample = 1000, seed = 123)
+```
+
+```{r}
+summary(fit_ARC.NA.model) 
+#KM cond is credibly more NA than the other conds
+#NA is not changing the KM effects, but does mirror the PA effects nearly 1 for 1
+
+```
+
+
+### Exploratory Previous Exp KM
+```{r}
+library(blavaan)
+library(brms)
+library(qgraph)
+library(bayestestR)
+options(mc.cores = parallel::detectCores())
+
+ARC.prev.model <- '
+#Regressions: Mediators, PA & KM. Priors of parameters + parameters
+pKM_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(1.4,.10)")*CondKM + 
+ aKM2*CondAmuse+ aKM1*CondKM + prior("normal(0,2)")*Vid_PrevExp + Vid_PrevExp
+PosAff_Z ~ prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM +
+aPA2*CondAmuse + aPA1*CondKM + prior("normal(0,2)")*Vid_PrevExp + Vid_PrevExp
+
+#Regressions: Outcomes, ARC Sat/Frus. Priors of parameters + parameters
+ANS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANS_1_Z +
+bASi*pKM_Z + bASii*PosAff_Z + cAS1*CondKM + cAS2*CondAmuse +dAS*ANS_1_Z
+
+ANF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*ANF_1_Z +
+bAFi*pKM_Z + bAFii*PosAff_Z + aAF1*CondKM + cAF2*CondAmuse + dAF*ANF_1_Z
+
+RNS_2_Z ~ prior("normal(.052,.041)")*pKM_Z + prior("normal(.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(.161,.075)")*CondKM + prior("normal(.740,.031)")*RNS_1_Z +
+bRSi*pKM_Z + bRSii*PosAff_Z + cRS1*CondKM + cRS2*CondAmuse + dRS*RNS_1_Z
+
+RNF_2_Z ~ prior("normal(-.014,.032)")*pKM_Z + prior("normal(-.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(-.120,.059)")*CondKM + prior("normal(0.84,.024)")*RNF_1_Z +
+bRFi*pKM_Z + bRFii*PosAff_Z + cRF1*CondKM + cRF2*CondAmuse + dRF*RNF_1_Z
+
+CNS_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNS_1_Z +
+bCSi*pKM_Z + bCSii*PosAff_Z + cCS1*CondKM + cCS2*CondAmuse + dCS*CNS_1_Z
+
+CNF_2_Z ~ prior("normal(0,2)")*pKM_Z + prior("normal(-0.1,1)")*PosAff_Z + prior("normal(0,2)")*CondAmuse + prior("normal(0,2)")*CondKM + prior("normal(0,2)")*CNF_1_Z +
+bCFi*pKM_Z + bCFii*PosAff_Z + cCF1*CondKM + cCF2*CondAmuse + dCF*CNF_1_Z
+
+#Intercepts: 
+pKM_Z~ prior("normal(-2.162,.092)")*1 +
+intKM*1
+PosAff_Z ~ prior("normal(0,2)")*1 +
+intPA*1
+ANS_2_Z ~ prior("normal(0,2)")*1 +
+intAS*1
+ANF_2_Z ~ prior("normal(0,2)")*1 +
+intAF*1
+RNS_2_Z ~ prior("normal(-.244,.116)")*1 +
+intRS*1
+RNF_2_Z ~ prior("normal(.183,.091)")*1 +
+intRF*1
+CNS_2_Z ~ prior("normal(0,2)")*1 +
+intCS*1
+CNF_2_Z ~ prior("normal(0,2)")*1 +
+intCF*1
+
+#Outcome Estimators:
+IAS_KM_KM:= aKM1*bASi
+IAS_KM_Amuse:= aKM2*bASi
+IAS_KM_Con:= intKM*bASi
+IAS_PA_KM:= aPA1*bASii
+IAS_PA_Amuse:= aPA2*bASii
+IAS_PA_Con:= intPA*bASii
+IAF_KM_KM:= aKM1*bAFi
+IAF_KM_Amuse:= aKM2*bAFi
+IAF_KM_Con:= intKM*bAFi
+IAF_PA_KM:= aPA1*bAFii
+IAF_PA_Amuse:= aPA2*bAFii
+IAF_PA_Con:= intPA*bAFii
+
+IRS_KM_KM:= aKM1*bRSi
+IRS_KM_Amuse:= aKM2*bRSi
+IRS_KM_Con:= intKM*bRSi
+IRS_PA_KM:= aPA1*bRSii
+IRS_PA_Amuse:= aPA2*bRSii
+IRS_PA_Con:= intPA*bRSii
+IRF_KM_KM:= aKM1*bRFi
+IRF_KM_Amuse:= aKM2*bRFi
+IRF_KM_Con:= intKM*bRFi
+IRF_PA_KM:= aPA1*bRFii
+IRF_PA_Amuse:= aPA2*bRFii
+IRF_PA_Con:= intPA*bRFii
+
+ICS_KM_KM:= aKM1*bCSi
+ICS_KM_Amuse:= aKM2*bCSi
+ICS_KM_Con:= intKM*bCSi
+ICS_PA_KM:= aPA1*bCSii
+ICS_PA_Amuse:= aPA2*bCSii
+ICS_PA_Con:= intPA*bCSii
+ICF_KM_KM:= aKM1*bCFi
+ICF_KM_Amuse:= aKM2*bCFi
+ICF_KM_Con:= intKM*bCFi
+ICF_PA_KM:= aPA1*bCFii
+ICF_PA_Amuse:= aPA2*bCFii
+ICF_PA_Con:= intPA*bCFii
+'
+```
+
+```{r}
+fit_ARC.prev <- bsem(ARC.prev.model, data = df, n.chains = 4, burnin = 500, sample = 1000, seed = 123)
+#note the https://arxiv.org/abs/2301.08667 link about priors--I preregistered these priors, so we'll stick with em', but some priors might have changed behind the scenes, specifically that psi prior--which should be fine, since it's the latent var precision parameter (and we have no latent vars here)
+```
+
+
+```{r}
+summary(fit_ARC.prev) # I suspect some of the condition effects would change based off of priors
+#Exploratory analyses show that actually no they don't change much if I add wider priors
+```
+```{r}
+mPrev <- lm(pKM_Z ~ Cond + Vid_PrevExp*Cond, data = df)
+summary(mPrev) #these are hard to interpret in models since we have almost nobody, I think actually nobody
+
 ```
 
 
@@ -1972,6 +2874,8 @@ table(df$SexualOr)
 ```{r}
 table(df$Student)
 ```
+
+
 ### Visualizations for Write-Up
 ```{r}
 ### Visualizing
